@@ -2,8 +2,8 @@
 //
 // usage: preview FORECAST.json NEWS.xml OUT.ppm [MODE]
 //
-// MODE is 1-based: 1 environmental panel, 2 System Updates, 5 edge check,
-// anything else the placeholder. Prints each hour's conditions and each
+// MODE is 1-based: 1 environmental panel, 2 System Updates, anything else
+// the placeholder. Prints each hour's conditions and each
 // headline so the screen can be checked against the data.
 #include "fb.h"
 #include "news.h"
@@ -53,7 +53,6 @@ int main(int argc, char **argv) {
     static uint8_t fb[FB_BYTES];
     if (mode == 0) screen_env(fb, &w, &ctx);
     else if (mode == 1) screen_news(fb, &news, now, w.utc_offset, &ctx);
-    else if (mode == ctx.modes - 1) screen_edge_check(fb, &ctx);
     else screen_placeholder(fb, &ctx);
 
     FILE *out = fopen(argv[3], "wb");

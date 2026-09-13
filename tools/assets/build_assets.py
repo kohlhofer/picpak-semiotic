@@ -20,8 +20,8 @@ OUT = ROOT / "firmware/main/assets_gen.c"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 CONDS = ["NOMINAL", "HEAT", "CRYO", "PRECIP", "WIND", "ELEC", "RANGE", "HUMID", "ARID", "RAD", "VIS", "PRES"]
 SIZES = [16, 24, 48, 88]
-FONTS = ["PX11", "SK8", "SK16", "BS17", "BS24", "BS60", "BS104"]
-ORBIT_PX = 30
+FONTS = ["PX16", "SK8", "SK16", "BS17", "BS24", "BS60", "BS104"]
+ORBIT_PX = 36
 
 
 def render():

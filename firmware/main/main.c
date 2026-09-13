@@ -123,7 +123,6 @@ static void do_draw(uint8_t mode) {
     screen_ctx_t ctx = { .mode = mode, .modes = MODES, .batt_pct = batt_pct(s_batt_mv), .sync_utc = s_sync_utc };
     if (mode == 0) screen_env(s_fb, &s_wx, &ctx);
     else if (mode == 1) screen_news(s_fb, &s_news, (int64_t)time(NULL), s_wx.utc_offset, &ctx);
-    else if (mode == MODES - 1) screen_edge_check(s_fb, &ctx);   // temporary, until the case margins are known
     else screen_placeholder(s_fb, &ctx);
     ESP_LOGI(TAG, "drawing mode %d", mode + 1);
     esp_err_t err = epd_show(s_fb);

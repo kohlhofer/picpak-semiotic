@@ -52,7 +52,7 @@ assets:
 
 # Render a screen from live Cary weather and NPR headlines to build/preview.png.
 # FORECAST=path and NEWS=path render saved responses instead. MODE picks the
-# screen: 1 environmental panel, 2 System Updates, 5 edge check.
+# screen: 1 environmental panel, 2 System Updates, 3-5 placeholders.
 MODE ?= 1
 preview:
 	@mkdir -p build

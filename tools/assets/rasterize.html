@@ -11,7 +11,7 @@
   and VIS; A for the rest.
 -->
 <meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Pixelify+Sans:wght@400&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Pixelify+Sans:wght@500&family=Silkscreen&display=swap">
 <pre id="out"></pre>
 <script>
 (async () => {
@@ -163,23 +163,23 @@
     return Array.from(F.idx).join('');
   }
 
-  // System Updates orbit placards, one per hour of age (0-23). The planet goes
-  // clockwise from twelve o'clock through a day; under three hours is yellow.
+  // System Updates orbit placards, one per hour of age (0-23). A yellow sun in
+  // the middle; the planet goes clockwise from twelve o'clock through a day,
+  // red while the story is under three hours old.
   function orbit(hour, s) {
     const F = new Frame(s, s);
-    const fresh = hour < 3;
-    const ground = fresh ? Y : W;
     const b = Math.max(2, Math.round(s / 16)), r = Math.max(3, Math.round(s * 0.17));
     F.op(K, 0, 0, s, s, c => { rrect(c, 0, 0, s, s, r); c.fill(); });
-    F.op(ground, b, b, s - 2 * b, s - 2 * b, c => { rrect(c, b, b, s - 2 * b, s - 2 * b, Math.max(1, r - b)); c.fill(); });
+    F.op(W, b, b, s - 2 * b, s - 2 * b, c => { rrect(c, b, b, s - 2 * b, s - 2 * b, Math.max(1, r - b)); c.fill(); });
     const cx = s / 2, cy = s / 2, u = (s - 2 * Math.round(s * 0.19)) / 10;
     const lw = Math.max(1, Math.round(s / 20));
     const box = [b, b, s - 2 * b, s - 2 * b];
-    F.op(K, ...box, c => { c.lineWidth = lw; c.beginPath(); c.arc(cx, cy, 4.2 * u, 0, Math.PI * 2); c.stroke(); disc(c, cx, cy, 1.5 * u); });
+    F.op(K, ...box, c => { c.lineWidth = lw; c.beginPath(); c.arc(cx, cy, 4.2 * u, 0, Math.PI * 2); c.stroke(); disc(c, cx, cy, 1.9 * u); });
+    F.op(Y, ...box, c => disc(c, cx, cy, 1.3 * u));
     const a = (-90 + hour / 24 * 360) * Math.PI / 180;
     const px = cx + Math.cos(a) * 4.2 * u, py = cy + Math.sin(a) * 4.2 * u;
-    F.op(ground, ...box, c => disc(c, px, py, 1.9 * u));
-    F.op(K, ...box, c => disc(c, px, py, 1.3 * u));
+    F.op(W, ...box, c => disc(c, px, py, 1.9 * u));
+    F.op(hour < 3 ? R : K, ...box, c => disc(c, px, py, 1.4 * u));
     return Array.from(F.idx).join('');
   }
 
@@ -187,7 +187,7 @@
   for (let i = 32; i < 127; i++) ascii += String.fromCharCode(i);
 
   const FONTS = [
-    ['PX11', '11px "Pixelify Sans"', ascii],
+    ['PX16', '500 16px "Pixelify Sans"', ascii],
     ['SK8', '8px Silkscreen', ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%:+-/.'],
     ['SK16', '16px Silkscreen', ' 0123456789%-'],
     ['BS17', '800 17px "Big Shoulders Display"', '0123456789-°'],
@@ -216,7 +216,7 @@
 
   await Promise.all(FONTS.map(f => document.fonts.load(f[1])));
   const out = { tiles: {}, fonts: {}, orbits: [] };
-  for (let h = 0; h < 24; h++) out.orbits.push(orbit(h, 30));
+  for (let h = 0; h < 24; h++) out.orbits.push(orbit(h, 36));
   for (const [name, sym] of SYM) {
     out.tiles[name] = {};
     for (const s of [16, 24, 48, 88]) out.tiles[name][s] = [0, 1, 2].map(sev => tile(sym, s, sev));

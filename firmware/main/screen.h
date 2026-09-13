@@ -20,7 +20,3 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
 
 // Any mode that has no screen yet.
 void screen_placeholder(uint8_t *fb, const screen_ctx_t *ctx);
-
-// Temporary: measures how much of each edge the case hides. Every side
-// carries the numbers 0 to 18, each drawn that many pixels in from the edge.
-void screen_edge_check(uint8_t *fb, const screen_ctx_t *ctx);

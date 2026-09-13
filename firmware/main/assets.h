@@ -20,9 +20,9 @@ typedef struct {
     const uint8_t *bits;
 } font_t;
 
-extern const font_t FONT_PX11, FONT_SK8, FONT_SK16, FONT_BS17, FONT_BS24, FONT_BS60, FONT_BS104;
+extern const font_t FONT_PX16, FONT_SK8, FONT_SK16, FONT_BS17, FONT_BS24, FONT_BS60, FONT_BS104;
 
 // System Updates orbit placard for a story `hour` hours old (clamped to 0-23),
 // ORBIT_PX square, 2 bpp.
-#define ORBIT_PX 30
+#define ORBIT_PX 36
 const uint8_t *asset_orbit(int hour);
