@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:npr="https://www.npr.org/rss/" xmlns:nprml="https://api.npr.org/nprml" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" version="2.0">
+  <channel>
+    <title>NPR Topics: News</title>
+    <link>https://www.npr.org/templates/story/story.php?storyId=1001</link>
+    <description>NPR news, audio, and podcasts. Coverage of breaking stories, national and world news, politics, business, science, technology, and extended coverage of major national and world events.</description>
+    <language>en</language>
+    <copyright>Copyright 2024 NPR - For Personal Use Only</copyright>
+    <generator>Story API Shim 1.2.24</generator>
+    <lastBuildDate>Sun, 13 Sep 2026 17:48:34 -0400</lastBuildDate>
+    <image>
+      <url>https://media.npr.org/images/podcasts/primary/npr_generic_image_300.jpg?s=200</url>
+      <title>NPR Topics: News</title>
+      <link>https://www.npr.org/sections/news/</link>
+    </image>
+    <item>
+      <title>Wisconsin congressman survives emergency plane landing, swims to safety</title>
+      <description>Wisconsin Congressman Tom Tiffany escaped a sinking plane and swam to shallow water after an emergency landing in a lake. Tiffany and the pilot called 911 from on top of the plane.</description>
+      <pubDate>Sun, 13 Sep 2026 13:45:33 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/nx-s1-5968081/wisconsin-congressman-survives-emergency-plane-landing-swims-to-safety</link>
+      <guid>https://www.npr.org/2026/09/13/nx-s1-5968081/wisconsin-congressman-survives-emergency-plane-landing-swims-to-safety</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/2803x1869+0+0/resize/2803x1869!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F45%2F56%2F7882c95947e6986d005c0f26c3f2%2Fap26256436258577.jpg' alt='Rep. Tom Tiffany, R-Wis., speaks at the Wisconsin Air National Guard facility at Milwaukee Mitchell International Airport, July 8, 2026, in Milwaukee.'/><p>Wisconsin Congressman Tom Tiffany escaped a sinking plane and swam to shallow water after an emergency landing in a lake. Tiffany and the pilot called 911 from on top of the plane.</p><p>(Image credit: Mark Schiefelbein)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5968081' />]]></content:encoded>
+      <dc:creator>Kristin Wright</dc:creator>
+    </item>
+    <item>
+      <title>Actor Tatyana Ali is advocating for Black and Indigenous maternal health</title>
+      <description>Actor Tatyana Ali says her healing journey after a traumatic childbirth has inspired her advocacy for Black maternal health, including support for midwives, doulas and other birth workers.</description>
+      <pubDate>Sun, 13 Sep 2026 10:00:00 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/nx-s1-5966885/birth-black-and-indigenous-maternal-health</link>
+      <guid>https://www.npr.org/2026/09/13/nx-s1-5966885/birth-black-and-indigenous-maternal-health</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/1398x1386+0+256/resize/1398x1386!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F61%2Fcd%2Fc86c24554061ba0c18f179044b0d%2Ftatyana-ali-2026-by-manfred-baumann-06.jpg' alt='Actor Tatyana Ali holds a Baby Yams quilt. Ali's baby blankets raise funds and awareness for Black and Indigenous birth workers.'/><p>Actor Tatyana Ali says her healing journey after a traumatic childbirth has inspired her advocacy for Black maternal health, including support for midwives, doulas and other birth workers.</p><p>(Image credit: Manfred Baumann)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5966885' />]]></content:encoded>
+      <dc:creator>Kristin Wright</dc:creator>
+    </item>
+    <item>
+      <title>Politics chat: Trump&apos;s $5,000 promise to voters, Vance invokes Charlie Kirk</title>
+      <description>Following the midterm convention in Dallas, President Trump&apos;s $5,000 campaign promise has generated attention, but not belief. And, Vice President JD Vance characterizes Democrats as extremists.</description>
+      <pubDate>Sun, 13 Sep 2026 08:04:27 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/nx-s1-5964863/politics-chat-trumps-5-000-promise-to-voters-vance-invokes-charlie-kirk</link>
+      <guid>https://www.npr.org/2026/09/13/nx-s1-5964863/politics-chat-trumps-5-000-promise-to-voters-vance-invokes-charlie-kirk</guid>
+      <content:encoded><![CDATA[<p>Following the midterm convention in Dallas, President Trump's $5,000 campaign promise has generated attention, but not belief. And, Vice President JD Vance characterizes Democrats as extremists.</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5964863' />]]></content:encoded>
+      <dc:creator>Ayesha Rascoe</dc:creator>
+    </item>
+    <item>
+      <title>From fracking to data centers: Hearing from people on both sides of the opposition</title>
+      <description>NPR&apos;s Ayesha Rascoe speaks with environmentalist, Bill McKibben, and public relations specialist, Frank Maisano, about opposition to industrial development projects like fracking and data centers.</description>
+      <pubDate>Sun, 13 Sep 2026 08:04:24 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/nx-s1-5946724/from-fracking-to-data-centers-hearing-from-people-on-both-sides-of-the-opposition</link>
+      <guid>https://www.npr.org/2026/09/13/nx-s1-5946724/from-fracking-to-data-centers-hearing-from-people-on-both-sides-of-the-opposition</guid>
+      <content:encoded><![CDATA[<p>NPR's Ayesha Rascoe speaks with environmentalist, Bill McKibben, and public relations specialist, Frank Maisano, about opposition to industrial development projects like fracking and data centers.</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5946724' />]]></content:encoded>
+      <dc:creator>Ayesha Rascoe</dc:creator>
+    </item>
+    <item>
+      <title>Can you imagine a universe without a new &apos;Star Trek&apos; on the horizon?</title>
+      <description>As &lt;em&gt;Star Trek&lt;/em&gt; celebrates its 60th birthday, the long-running franchise is also grappling with the challenges of timing and technology. &quot;Its audience is aging,&quot; says &lt;em&gt;Strange New Worlds&lt;/em&gt; star Anson Mount.</description>
+      <pubDate>Sun, 13 Sep 2026 07:00:00 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/nx-s1-5957544/star-trek-anniversary</link>
+      <guid>https://www.npr.org/2026/09/13/nx-s1-5957544/star-trek-anniversary</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2250+0+0/resize/3000x2250!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F70%2F5e%2F828f6b814865b2bf4c37171bce5f%2Ftos-34-3.tif' alt='It's been 60 years since NBC aired the first episode of <em>Star Trek.</em> Above, Leonard Nimoy as Spock.'/><p>As <em>Star Trek</em> celebrates its 60th birthday, the long-running franchise is also grappling with the challenges of timing and technology. "Its audience is aging," says <em>Strange New Worlds</em> star Anson Mount.</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5957544' />]]></content:encoded>
+      <dc:creator>Eric Deggans</dc:creator>
+    </item>
+    <item>
+      <title>Indonesian passenger ship overturns, sparking search for at least 129 missing</title>
+      <description>Indonesian rescuers said about 130 passengers and crew are missing after a ferry carrying more than 240 people sank in bad weather in the Java Sea on Sunday. </description>
+      <pubDate>Sun, 13 Sep 2026 06:31:10 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/g-s1-143114/about-130-missing-after-indonesian-passenger-ship-overturns</link>
+      <guid>https://www.npr.org/2026/09/13/g-s1-143114/about-130-missing-after-indonesian-passenger-ship-overturns</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4000x2666+0+0/resize/4000x2666!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F94%2Ff4%2Fa0e5df38449ba9b5a92f984c7b90%2Fap26256299279268.jpg' alt='People look for the names of their family members on a passenger list after a ferry overturned in bad weather in the Java Sea, at the rescuers command center in Banjarmasin, South Kalimantan, Indonesia, Sunday, Sept. 13, 2026.'/><p>Indonesian rescuers said about 130 passengers and crew are missing after a ferry carrying more than 240 people sank in bad weather in the Java Sea on Sunday. </p><p>(Image credit: Iman Satria)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=g-s1-143114' />]]></content:encoded>
+      <dc:creator>The Associated Press</dc:creator>
+    </item>
+    <item>
+      <title>How a young woman was recruited to ISIS — and how she eventually escaped</title>
+      <description>A young Canadian mother shares her memories of being an ISIS bride, and her harrowing escape from the extremist group.</description>
+      <pubDate>Sun, 13 Sep 2026 05:00:00 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/13/nx-s1-5963568/canada-woman-escapes-isis</link>
+      <guid>https://www.npr.org/2026/09/13/nx-s1-5963568/canada-woman-escapes-isis</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/4800x2699+0+0/resize/4800x2699!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F8b%2Fe0%2Fd019d9fd457ab3c71073ec829910%2Fhbarczyk-npr-isiswife-final2.jpg' alt='S. was born in Pakistan to Somali parents and raised in Canada. She joined ISIS as a young woman and eventually escaped, becoming an informant against the group.'/><p>A young Canadian mother shares her memories of being an ISIS bride, and her harrowing escape from the extremist group.</p><p>(Image credit: Illustration by Hanna Barczyk for NPR)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5963568' />]]></content:encoded>
+      <dc:creator>Tom Bowman</dc:creator>
+    </item>
+    <item>
+      <title>Celine Dion returns to the stage after battling rare illness</title>
+      <description>The Canadian singer opened up her 16-show residency in Paris at the Plenitude Arena. The entire series is sold out.</description>
+      <pubDate>Sat, 12 Sep 2026 19:54:06 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/12/nx-s1-5967534/celine-dion-performance-paris</link>
+      <guid>https://www.npr.org/2026/09/12/nx-s1-5967534/celine-dion-performance-paris</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3231x2154+0+0/resize/3231x2154!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fb3%2Fd1%2F12cb5e554d49be949447d540b0d6%2Fap26255714607289.jpg' alt='Singer Celine Dion performs during the opening concert of her 'Celine Dion Paris 2026' residency at the Plenitude Arena in Nanterre, outside Paris, Saturday, Sept. 12, 2026.'/><p>The Canadian singer opened up her 16-show residency in Paris at the Plenitude Arena. The entire series is sold out.</p><p>(Image credit: Aurelien Morissard)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5967534' />]]></content:encoded>
+      <dc:creator>Chandelis Duster</dc:creator>
+    </item>
+    <item>
+      <title>Alien Terrorist Removal Court deports legal US resident to Afghanistan in first-ever case</title>
+      <description>Nazira Haji Zada, a lawful permanent resident, conceded to being an &quot;alien terrorist.&quot; It marks the first case in the Alien Terrorist Removal Court.</description>
+      <pubDate>Sat, 12 Sep 2026 14:29:18 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/12/nx-s1-5967476/alien-removal-court-deportation-afganistan</link>
+      <guid>https://www.npr.org/2026/09/12/nx-s1-5967476/alien-removal-court-deportation-afganistan</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/6000x4000+0+0/resize/6000x4000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2Fbd%2F1b%2F0e98c9ea4e2fab1fa554a7d503cc%2Fap26254519545366.jpg' alt='FILE - The U.S. Department of Justice logo is seen on a podium before a news conference, May 4, 2026, in Washington.'/><p>Nazira Haji Zada, a lawful permanent resident, conceded to being an "alien terrorist." It marks the first case in the Alien Terrorist Removal Court.</p><p>(Image credit: Julia Demaree Nikhinson)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=nx-s1-5967476' />]]></content:encoded>
+      <dc:creator>Ava Berger</dc:creator>
+    </item>
+    <item>
+      <title>&apos;People are still afraid of those three letters&apos;: Fighting the stigma of HIV</title>
+      <description>That&apos;s a quote from former rugby star Gareth Thomas, who is HIV positive. At the International AIDS Conference in Rio this year, he spoke out about the isolation and discrimination tied to the virus.</description>
+      <pubDate>Sat, 12 Sep 2026 09:03:20 -0400</pubDate>
+      <link>https://www.npr.org/2026/09/12/g-s1-142404/hiv-aids-brazil-stigma</link>
+      <guid>https://www.npr.org/2026/09/12/g-s1-142404/hiv-aids-brazil-stigma</guid>
+      <content:encoded><![CDATA[<img src='https://npr.brightspotcdn.com/dims3/default/strip/false/crop/3000x2000+0+0/resize/3000x2000!/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F1b%2Fa9%2F01f1fe5c44a9ace40208a6845fb1%2Faids-conference-06404.jpg' alt='Retired rugby star Gareth Thomas, who is HIV positive, came to Rio de Janeiro's famed Ipanema Beach to participate in a campaign called "Tackle HIV."'/><p>That's a quote from former rugby star Gareth Thomas, who is HIV positive. At the International AIDS Conference in Rio this year, he spoke out about the isolation and discrimination tied to the virus.</p><p>(Image credit: Ian Cheibub for NPR)</p><img src='https://media.npr.org/include/images/tracking/npr-rss-pixel.png?story=g-s1-142404' />]]></content:encoded>
+      <dc:creator>David Cox</dc:creator>
+    </item>
+  </channel>
+</rss>

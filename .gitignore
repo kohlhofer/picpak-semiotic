@@ -1,0 +1,15 @@
+# Per-device stock flash dumps: 16 MB each, and they carry this unit's serial and radio calibration.
+backup/
+
+build/
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+firmware/dependencies.lock
+
+# Wi-Fi credentials for the firmware.
+firmware/main/secrets.h
+
+# clangd index
+firmware/.cache/

@@ -1,0 +1,21 @@
+CONFIG_IDF_TARGET="esp32c3"
+
+# Matches the stock image header: DIO, 80 MHz, 16 MB. The flash chip reports
+# 32 MB, but the C3 only addresses the lower 16 MB. Never write above that.
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+# GPIO21 is the LED and also UART0 TX, so the console lives on native USB only.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# The supply sags under load. 80 MHz lowers the baseline draw, and the most
+# tolerant brownout level keeps short dips from resetting the board.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_80=y
+CONFIG_ESP_BROWNOUT_DET_LVL_SEL_7=y
+
+# Wi-Fi at full power browns the PicPak out (varanu5's finding). This caps the
+# PHY calibration spike, which the runtime TX power setting does not reach.
+CONFIG_ESP_PHY_MAX_WIFI_TX_POWER=10
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=6144

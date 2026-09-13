@@ -1,0 +1,232 @@
+<!doctype html>
+<!--
+  Source of truth for the PicPak placard art and bitmap fonts.
+
+  build_assets.py loads this page in headless Chrome, which draws every placard
+  and glyph with the same canvas code as the approved design pages, thresholds
+  coverage at 50 % so no in-between colour survives, and writes the pixels as
+  JSON into #out. The script turns that into firmware/main/assets_gen.c.
+
+  Picks from the placard review (2026-09-13): rounded frame; B for HEAT, PRECIP
+  and VIS; A for the rest.
+-->
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Pixelify+Sans:wght@400&family=Silkscreen&display=swap">
+<pre id="out"></pre>
+<script>
+(async () => {
+  const K = 0, W = 1, Y = 2, R = 3;
+
+  class Frame {
+    constructor(w, h) {
+      this.w = w; this.h = h;
+      this.idx = new Uint8Array(w * h).fill(W);
+      this.sc = document.createElement('canvas');
+      this.sc.width = w; this.sc.height = h;
+      this.sx = this.sc.getContext('2d', { willReadFrequently: true });
+    }
+    rect(c, x, y, w, h) {
+      const x0 = Math.max(0, Math.round(x)), y0 = Math.max(0, Math.round(y));
+      const x1 = Math.min(this.w, Math.round(x + w)), y1 = Math.min(this.h, Math.round(y + h));
+      for (let yy = y0; yy < y1; yy++) this.idx.fill(c, yy * this.w + x0, yy * this.w + x1);
+    }
+    op(c, bx, by, bw, bh, fn) {
+      const x0 = Math.max(0, Math.floor(bx)), y0 = Math.max(0, Math.floor(by));
+      const x1 = Math.min(this.w, Math.ceil(bx + bw)), y1 = Math.min(this.h, Math.ceil(by + bh));
+      const w = x1 - x0, h = y1 - y0;
+      if (w <= 0 || h <= 0) return;
+      const s = this.sx;
+      s.clearRect(x0, y0, w, h);
+      s.save();
+      s.beginPath(); s.rect(x0, y0, w, h); s.clip();
+      s.fillStyle = '#fff'; s.strokeStyle = '#fff'; s.lineCap = 'butt'; s.lineJoin = 'miter';
+      fn(s);
+      s.restore();
+      const d = s.getImageData(x0, y0, w, h).data;
+      for (let yy = 0; yy < h; yy++) {
+        const row = (y0 + yy) * this.w + x0;
+        for (let xx = 0; xx < w; xx++) if (d[(yy * w + xx) * 4 + 3] >= 128) this.idx[row + xx] = c;
+      }
+    }
+  }
+
+  const ln = (c, x0, y0, x1, y1) => { c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); };
+  const poly = (c, pts) => { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fill(); };
+  const pline = (c, pts) => { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); };
+  const disc = (c, x, y, r) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); };
+  const thin = (lw, f) => Math.max(2, Math.round(lw * f));
+  function rrect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.arcTo(x + w, y, x + w, y + r, r);
+    c.lineTo(x + w, y + h - r); c.arcTo(x + w, y + h, x + w - r, y + h, r);
+    c.lineTo(x + r, y + h); c.arcTo(x, y + h, x, y + h - r, r);
+    c.lineTo(x, y + r); c.arcTo(x, y, x + r, y, r);
+    c.closePath();
+  }
+  function dropAt(c, X, Yy, u, cx, cy, k) {
+    const P = (dx, dy) => [X(cx + dx * k), Yy(cy + dy * k)];
+    c.beginPath();
+    c.moveTo(...P(0, -4.6));
+    c.bezierCurveTo(...P(1.6, -2.4), ...P(3.3, -0.6), ...P(3.3, 1.5));
+    c.arc(X(cx), Yy(cy + 1.5 * k), 3.3 * u * k, 0, Math.PI, false);
+    c.bezierCurveTo(...P(-3.3, -0.6), ...P(-1.6, -2.4), ...P(0, -4.6));
+    c.closePath();
+  }
+
+  // The picked pictogram for each condition, in firmware enum order (cond.h).
+  const SYM = [
+    ['NOMINAL', { ink(c, X, Yy, u) { c.fillRect(X(1), Yy(2.8), 8 * u, 1.5 * u); c.fillRect(X(1), Yy(5.7), 8 * u, 1.5 * u); } }],
+    ['HEAT', { ink(c, X, Yy, u, lw) {
+      c.fillRect(X(0.4), Yy(8.4), 9.2 * u, 1.6 * u);
+      c.lineWidth = lw;
+      for (const ay of [5.6, 3.4, 1.2]) pline(c, [[X(1.4), Yy(ay + 1.8)], [X(5), Yy(ay)], [X(8.6), Yy(ay + 1.8)]]);
+    } }],
+    ['CRYO', { ink(c, X, Yy, u, lw) {
+      c.lineWidth = lw;
+      for (const a of [90, 30, 150]) {
+        const r = a * Math.PI / 180, dx = Math.cos(r) * 4.6, dy = Math.sin(r) * 4.6;
+        ln(c, X(5 - dx), Yy(5 - dy), X(5 + dx), Yy(5 + dy));
+      }
+      c.fillRect(X(3.8), Yy(3.8), 2.4 * u, 2.4 * u);
+    } }],
+    ['PRECIP', { ink(c, X, Yy, u) {
+      for (const [cx, cy] of [[2.9, 3.0], [7.1, 3.0], [5, 6.9]]) { dropAt(c, X, Yy, u, cx, cy, 0.47); c.fill(); }
+    } }],
+    ['WIND', { ink(c, X, Yy, u, lw) {
+      c.lineWidth = lw;
+      for (const [yy, end] of [[1.8, 7.4], [5, 9.8], [8.2, 6.4]]) {
+        ln(c, X(0.2), Yy(yy), X(end - 1.4), Yy(yy));
+        poly(c, [[X(end), Yy(yy)], [X(end - 2.2), Yy(yy - 1.5)], [X(end - 2.2), Yy(yy + 1.5)]]);
+      }
+    } }],
+    ['ELEC', { ink(c, X, Yy) {
+      poly(c, [[X(6.6), Yy(0)], [X(1.4), Yy(5.8)], [X(4.6), Yy(5.8)], [X(3), Yy(10)], [X(8.6), Yy(3.9)], [X(5.4), Yy(3.9)], [X(7.2), Yy(0)]]);
+    } }],
+    ['RANGE', { ink(c, X, Yy, u, lw) {
+      const cap = thin(lw, 0.7);
+      c.fillRect(X(1.2), Yy(0), 7.6 * u, cap);
+      c.fillRect(X(1.2), Yy(10) - cap, 7.6 * u, cap);
+      c.lineWidth = lw;
+      ln(c, X(5), Yy(3), X(5), Yy(7));
+      poly(c, [[X(5), Yy(1.4)], [X(2.9), Yy(3.8)], [X(7.1), Yy(3.8)]]);
+      poly(c, [[X(5), Yy(8.6)], [X(2.9), Yy(6.2)], [X(7.1), Yy(6.2)]]);
+    } }],
+    ['HUMID', {
+      ink(c, X, Yy, u) { dropAt(c, X, Yy, u, 5, 5, 1); c.fill(); },
+      cut(c, X, Yy, u) { c.fillRect(X(1.2), Yy(5.3), 7.6 * u, u); c.fillRect(X(1.2), Yy(7.6), 7.6 * u, u); },
+    }],
+    ['ARID', { ink(c, X, Yy, u, lw) {
+      c.lineWidth = thin(lw, 0.7);
+      dropAt(c, X, Yy, u, 5, 5, 1); c.stroke();
+      c.lineWidth = lw;
+      ln(c, X(0.4), Yy(9.6), X(9.6), Yy(0.4));
+    } }],
+    ['RAD', { ink(c, X, Yy, u) {
+      const cx = X(5), cy = Yy(5.5);
+      disc(c, cx, cy, 1.2 * u);
+      for (const a of [-150, -30, 90]) {
+        const a0 = (a - 30) * Math.PI / 180, a1 = (a + 30) * Math.PI / 180;
+        c.beginPath(); c.arc(cx, cy, 4.5 * u, a0, a1); c.arc(cx, cy, 2 * u, a1, a0, true); c.closePath(); c.fill();
+      }
+    } }],
+    ['VIS', {
+      ink(c, X, Yy, u) { disc(c, X(5), Yy(4.2), 3.4 * u); },
+      cut(c, X, Yy, u) { c.fillRect(X(0.5), Yy(4.6), 9 * u, 0.9 * u); c.fillRect(X(0.5), Yy(6.3), 9 * u, 0.9 * u); },
+      ink2(c, X, Yy, u) { c.fillRect(X(0.2), Yy(8.6), 9.6 * u, 1.4 * u); },
+    }],
+    ['PRES', { ink(c, X, Yy, u, lw) {
+      c.lineWidth = thin(lw, 0.75);
+      c.beginPath(); c.arc(X(5), Yy(6.6), 4.4 * u, Math.PI, 2 * Math.PI); c.stroke();
+      c.lineWidth = lw;
+      const r = 200 * Math.PI / 180;
+      ln(c, X(5), Yy(6.6), X(5 + Math.cos(r) * 3.9), Yy(6.6 + Math.sin(r) * 3.9));
+      disc(c, X(5), Yy(6.6), 1.2 * u);
+      poly(c, [[X(5), Yy(10)], [X(3.2), Yy(8.2)], [X(6.8), Yy(8.2)]]);
+    } }],
+  ];
+
+  function tile(id, s, sev) {
+    const F = new Frame(s, s);
+    const ground = sev === 2 ? R : sev === 1 ? Y : W;
+    const ink = sev === 2 ? W : K;
+    const b = Math.max(2, Math.round(s / 16));
+    const r = Math.max(3, Math.round(s * 0.17));
+    F.op(K, 0, 0, s, s, c => { rrect(c, 0, 0, s, s, r); c.fill(); });
+    F.op(ground, b, b, s - 2 * b, s - 2 * b, c => { rrect(c, b, b, s - 2 * b, s - 2 * b, Math.max(1, r - b)); c.fill(); });
+    const pad = Math.round(s * 0.19), u = (s - 2 * pad) / 10;
+    const X = a => pad + a * u, Yy = a => pad + a * u;
+    const lw = Math.max(2, Math.round(s / 12));
+    const box = [b, b, s - 2 * b, s - 2 * b];
+    F.op(ink, ...box, c => id.ink(c, X, Yy, u, lw));
+    if (id.cut) F.op(ground, ...box, c => id.cut(c, X, Yy, u, lw));
+    if (id.ink2) F.op(ink, ...box, c => id.ink2(c, X, Yy, u, lw));
+    return Array.from(F.idx).join('');
+  }
+
+  // System Updates orbit placards, one per hour of age (0-23). The planet goes
+  // clockwise from twelve o'clock through a day; under three hours is yellow.
+  function orbit(hour, s) {
+    const F = new Frame(s, s);
+    const fresh = hour < 3;
+    const ground = fresh ? Y : W;
+    const b = Math.max(2, Math.round(s / 16)), r = Math.max(3, Math.round(s * 0.17));
+    F.op(K, 0, 0, s, s, c => { rrect(c, 0, 0, s, s, r); c.fill(); });
+    F.op(ground, b, b, s - 2 * b, s - 2 * b, c => { rrect(c, b, b, s - 2 * b, s - 2 * b, Math.max(1, r - b)); c.fill(); });
+    const cx = s / 2, cy = s / 2, u = (s - 2 * Math.round(s * 0.19)) / 10;
+    const lw = Math.max(1, Math.round(s / 20));
+    const box = [b, b, s - 2 * b, s - 2 * b];
+    F.op(K, ...box, c => { c.lineWidth = lw; c.beginPath(); c.arc(cx, cy, 4.2 * u, 0, Math.PI * 2); c.stroke(); disc(c, cx, cy, 1.5 * u); });
+    const a = (-90 + hour / 24 * 360) * Math.PI / 180;
+    const px = cx + Math.cos(a) * 4.2 * u, py = cy + Math.sin(a) * 4.2 * u;
+    F.op(ground, ...box, c => disc(c, px, py, 1.9 * u));
+    F.op(K, ...box, c => disc(c, px, py, 1.3 * u));
+    return Array.from(F.idx).join('');
+  }
+
+  let ascii = '';
+  for (let i = 32; i < 127; i++) ascii += String.fromCharCode(i);
+
+  const FONTS = [
+    ['PX11', '11px "Pixelify Sans"', ascii],
+    ['SK8', '8px Silkscreen', ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%:+-/.'],
+    ['SK16', '16px Silkscreen', ' 0123456789%-'],
+    ['BS17', '800 17px "Big Shoulders Display"', '0123456789-°'],
+    ['BS24', '800 24px "Big Shoulders Display"', '0123456789-°'],
+    ['BS60', '800 60px "Big Shoulders Display"', '0123456789-°'],
+    ['BS104', '800 104px "Big Shoulders Display"', '0123456789'],
+  ];
+
+  function glyph(font, ch, size) {
+    const S = size * 3, penX = Math.round(size * 0.5), base = size * 2;
+    const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+    const c = cv.getContext('2d', { willReadFrequently: true });
+    c.font = font; c.textBaseline = 'alphabetic'; c.fillStyle = '#fff';
+    const adv = c.measureText(ch).width;
+    c.fillText(ch, penX, base);
+    const d = c.getImageData(0, 0, S, S).data;
+    let x0 = S, y0 = S, x1 = -1, y1 = -1;
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      if (d[(y * S + x) * 4 + 3] >= 128) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    }
+    if (x1 < 0) return { ch, w: 0, h: 0, xo: 0, yo: 0, adv: Math.round(adv), bits: '' };
+    let bits = '';
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) bits += d[(y * S + x) * 4 + 3] >= 128 ? '1' : '0';
+    return { ch, w: x1 - x0 + 1, h: y1 - y0 + 1, xo: x0 - penX, yo: y0 - base, adv: Math.round(adv), bits };
+  }
+
+  await Promise.all(FONTS.map(f => document.fonts.load(f[1])));
+  const out = { tiles: {}, fonts: {}, orbits: [] };
+  for (let h = 0; h < 24; h++) out.orbits.push(orbit(h, 30));
+  for (const [name, sym] of SYM) {
+    out.tiles[name] = {};
+    for (const s of [16, 24, 48, 88]) out.tiles[name][s] = [0, 1, 2].map(sev => tile(sym, s, sev));
+  }
+  for (const [name, font, chars] of FONTS) {
+    const size = parseInt(font.match(/(\d+)px/)[1], 10);
+    out.fonts[name] = { font, glyphs: Array.from(chars).map(ch => glyph(font, ch, size)) };
+  }
+  out.fontCheck = FONTS.map(f => [f[1], document.fonts.check(f[1])]);
+  document.getElementById('out').textContent = JSON.stringify(out);
+  document.title = 'done';
+})();
+</script>
