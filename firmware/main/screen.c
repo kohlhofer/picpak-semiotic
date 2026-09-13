@@ -252,7 +252,7 @@ void screen_status(uint8_t *fb, const status_t *s, const char *device, const cha
     const int top = BAND_H + 7, bottom = EDGE_B - 15 - 6;
 
     // Power cell: a tall gauge of ten segments with its terminal on top.
-    const int gx = EDGE_L, gw = 70, gy = top + 8, gh = bottom - gy - 24;
+    const int gx = EDGE_L, gw = 70, gy = top + 8, gh = bottom - gy - 32;
     gfx_rrect(fb, gx + 22, gy - 6, 26, 10, 3, FB_BLACK);
     gfx_rrect(fb, gx, gy, gw, gh, 8, FB_BLACK);
     gfx_rrect(fb, gx + 3, gy + 3, gw - 6, gh - 6, 6, FB_WHITE);
@@ -274,7 +274,7 @@ void screen_status(uint8_t *fb, const status_t *s, const char *device, const cha
     fb_color_t vink = verdict == SEV_CAUTION ? FB_BLACK : FB_WHITE;
     gfx_rrect(fb, rx, top, vw, 30, 6, FB_BLACK);
     gfx_rrect(fb, rx + 2, top + 2, vw - 4, 26, 5, vfill);
-    gfx_text(fb, rx + 10, top + 24, &FONT_BS20, vink, WORD[verdict], GFX_LEFT);
+    gfx_text(fb, rx + 10, top + 26, &FONT_JR37, vink, WORD[verdict], GFX_LEFT);
     gfx_text(fb, EDGE_R - 10, top + 19, &FONT_SK8, vink, cell.sub, GFX_RIGHT);
 
     // Readouts
