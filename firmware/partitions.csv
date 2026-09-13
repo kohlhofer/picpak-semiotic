@@ -1,0 +1,6 @@
+# Name,    Type, SubType, Offset,   Size
+# The flash chip has 16 MB; the stock layout left the app 1.5 MB. 4 MB gives
+# the firmware room for more modes, fonts and placards.
+nvs,       data, nvs,     0x9000,   0x6000
+phy_init,  data, phy,     0xf000,   0x1000
+factory,   app,  factory, 0x10000,  0x400000
