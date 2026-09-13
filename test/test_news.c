@@ -69,23 +69,23 @@ static void test_fixture(const char *path) {
 
 static void test_wrap(void) {
     char lines[2][128];
-    int one = gfx_text_width(&FONT_PX16, "Wisconsin congressman");
-    int n = gfx_wrap(&FONT_PX16, "Wisconsin congressman survives emergency plane landing, swims to safety", one + 2, lines, 2);
+    int one = gfx_text_width(&FONT_JR19, "Wisconsin congressman");
+    int n = gfx_wrap(&FONT_JR19, "Wisconsin congressman survives emergency plane landing, swims to safety", one + 2, lines, 2);
     CHECK(n == 2);
     CHECK(strcmp(lines[0], "Wisconsin congressman") == 0);
     CHECK(strlen(lines[1]) > 3 && strcmp(lines[1] + strlen(lines[1]) - 3, "...") == 0);
-    CHECK(gfx_text_width(&FONT_PX16, lines[1]) <= one + 2);
+    CHECK(gfx_text_width(&FONT_JR19, lines[1]) <= one + 2);
 
-    n = gfx_wrap(&FONT_PX16, "Short headline", 300, lines, 2);
+    n = gfx_wrap(&FONT_JR19, "Short headline", 300, lines, 2);
     CHECK(n == 1 && strcmp(lines[0], "Short headline") == 0);
 
     // A word wider than the line is cut rather than lost.
-    n = gfx_wrap(&FONT_PX16, "Supercalifragilistic", 30, lines, 2);
+    n = gfx_wrap(&FONT_JR19, "Supercalifragilistic", 30, lines, 2);
     CHECK(n == 2);
-    CHECK(gfx_text_width(&FONT_PX16, lines[0]) <= 30 && strlen(lines[0]) > 0);
+    CHECK(gfx_text_width(&FONT_JR19, lines[0]) <= 30 && strlen(lines[0]) > 0);
 
-    CHECK(gfx_wrap(&FONT_PX16, "", 100, lines, 2) == 0);
-    CHECK(gfx_wrap(&FONT_PX16, "   ", 100, lines, 2) == 0);
+    CHECK(gfx_wrap(&FONT_JR19, "", 100, lines, 2) == 0);
+    CHECK(gfx_wrap(&FONT_JR19, "   ", 100, lines, 2) == 0);
 }
 
 int main(int argc, char **argv) {

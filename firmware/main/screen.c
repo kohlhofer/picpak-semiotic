@@ -198,7 +198,7 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
     const int line = 19, row_min = ORBIT_PX + 11, gap_min = 9;
     int count = 0, used = 0;
     for (int i = 0; i < n->count; i++) {
-        nl[i] = gfx_wrap(&FONT_PX16, n->item[i].title, width, lines[i], 2);
+        nl[i] = gfx_wrap(&FONT_JR19, n->item[i].title, width, lines[i], 2);
         int h = nl[i] * line;
         if (h < row_min) h = row_min;
         int need = used + (count ? gap_min : 0) + h;
@@ -220,7 +220,7 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
         snprintf(buf, sizeof buf, "%dH", (int)(age > 99 ? 99 : age));
         gfx_text(fb, EDGE_L + ORBIT_PX / 2, y + ORBIT_PX + 10, &FONT_SK8, age < 3 ? FB_RED : FB_BLACK, buf, GFX_CENTER);
         for (int k = 0; k < nl[i]; k++)
-            gfx_text(fb, text_x, y + 14 + k * line, &FONT_PX16, FB_BLACK, lines[i][k], GFX_LEFT);
+            gfx_text(fb, text_x, y + 12 + k * line, &FONT_JR19, FB_BLACK, lines[i][k], GFX_LEFT);
         int h = nl[i] * line;
         if (h < row_min) h = row_min;
         y += h + gap_min + extra;

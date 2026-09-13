@@ -11,7 +11,7 @@
   and VIS; A for the rest.
 -->
 <meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Pixelify+Sans:wght@500&family=Silkscreen&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Jersey+10&family=Silkscreen&display=swap">
 <pre id="out"></pre>
 <script>
 (async () => {
@@ -187,7 +187,9 @@
   for (let i = 32; i < 127; i++) ascii += String.fromCharCode(i);
 
   const FONTS = [
-    ['PX16', '500 16px "Pixelify Sans"', ascii],
+    // Jersey 10 is drawn on a 75-unit grid at 1400 units per em, so at 18.6667 px
+    // one grid step is exactly one panel pixel and every stroke lands whole.
+    ['JR19', '18.6667px "Jersey 10"', ascii],
     ['SK8', '8px Silkscreen', ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%:+-/.'],
     ['SK16', '16px Silkscreen', ' 0123456789%-'],
     ['BS17', '800 17px "Big Shoulders Display"', '0123456789-°'],
@@ -197,7 +199,7 @@
   ];
 
   function glyph(font, ch, size) {
-    const S = size * 3, penX = Math.round(size * 0.5), base = size * 2;
+    const S = Math.ceil(size * 3), penX = Math.round(size * 0.5), base = Math.round(size * 2);
     const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
     const c = cv.getContext('2d', { willReadFrequently: true });
     c.font = font; c.textBaseline = 'alphabetic'; c.fillStyle = '#fff';
@@ -222,7 +224,7 @@
     for (const s of [16, 24, 48, 88]) out.tiles[name][s] = [0, 1, 2].map(sev => tile(sym, s, sev));
   }
   for (const [name, font, chars] of FONTS) {
-    const size = parseInt(font.match(/(\d+)px/)[1], 10);
+    const size = parseFloat(font.match(/([\d.]+)px/)[1]);
     out.fonts[name] = { font, glyphs: Array.from(chars).map(ch => glyph(font, ch, size)) };
   }
   out.fontCheck = FONTS.map(f => [f[1], document.fonts.check(f[1])]);
