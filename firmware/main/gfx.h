@@ -22,5 +22,11 @@ int gfx_wrap(const font_t *f, const char *s, int width, char lines[][128], int m
 int gfx_text(uint8_t *fb, int x, int y, const font_t *f, fb_color_t color, const char *s, gfx_align_t align);
 int gfx_text_width(const font_t *f, const char *s);
 
+// Filled rectangle with corners of radius r (pixel centres inside the arc).
+void gfx_rrect(uint8_t *fb, int x, int y, int w, int h, int r, fb_color_t color);
+
+// Trims s in place until it fits width. Returns its final width.
+int gfx_fit(const font_t *f, char *s, int width);
+
 // Every other pixel from y0 up to, not including, y1.
 void gfx_dotted_vline(uint8_t *fb, int x, int y0, int y1, fb_color_t color);

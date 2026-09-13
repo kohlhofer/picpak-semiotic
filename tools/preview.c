@@ -2,7 +2,8 @@
 //
 // usage: preview FORECAST.json NEWS.xml OUT.ppm [MODE]
 //
-// MODE is 1-based: 1 environmental panel, 2 System Updates, anything else
+// MODE is 1-based: 1 environmental panel, 2 System Updates, 3 System Status
+// (example device readings; PREVIEW_TROUBLE=1 shows warnings), anything else
 // the placeholder. Prints each hour's conditions and each
 // headline so the screen can be checked against the data.
 #include "fb.h"
@@ -53,6 +54,17 @@ int main(int argc, char **argv) {
     static uint8_t fb[FB_BYTES];
     if (mode == 0) screen_env(fb, &w, &ctx);
     else if (mode == 1) screen_news(fb, &news, now, w.utc_offset, &ctx);
+    else if (mode == 2) {
+        // Example device readings; the forecast and headline sync times are real.
+        status_t st = { .batt_mv = 4110, .trend_mv = -20, .trend_hours = 24, .now = now, .utc_offset = w.utc_offset,
+                        .wx_sync = now - 300, .news_sync = now - 300, .next_fetch = (now / 3600 + 1) * 3600 + 90,
+                        .rssi = -61, .link_ms = 2400, .core_ok = true, .core_c = 31.5f,
+                        .app_bytes = 1225000, .app_part_bytes = 4 * 1024 * 1024, .flashed = now - 1800,
+                        .accel_ok = true, .accel_mg = { 40, -990, 170 } };
+        snprintf(st.build, sizeof st.build, "6c747c2");
+        if (getenv("PREVIEW_TROUBLE")) { st.batt_mv = 3590; st.trend_mv = -90; st.rssi = -86; st.fetch_failures = 3; st.wx_sync = now - 5 * 3600; }
+        screen_status(fb, &st, "PICPAK-3E44", "BUTTON", "USB", &ctx);
+    }
     else screen_placeholder(fb, &ctx);
 
     FILE *out = fopen(argv[3], "wb");

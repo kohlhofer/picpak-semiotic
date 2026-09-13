@@ -1,11 +1,12 @@
 // PicPak firmware: modes stepped with the one button. Mode 1 is the
-// environmental panel for Cary, NC; mode 2 is System Updates (NPR headlines).
+// environmental panel for Cary, NC; mode 2 is System Updates (NPR headlines);
+// mode 3 is System Status, the board reporting on itself.
 //
 // The board lives in deep sleep and wakes on the button or the hourly timer.
 //   - Button: every press moves the target mode on, wrapping after the last.
 //     Drawing starts 1.2 s after the last press. Presses during a refresh
 //     count, and the panel draws wherever the count got to once it is free.
-//   - Timer: fetch the forecast and headlines; redraw if mode 1 or 2 is on screen.
+//   - Timer: fetch the forecast and headlines; redraw if mode 1, 2 or 3 is on screen.
 //   - Button held 3 s: maintenance mode, which keeps USB up for flashing.
 // The forecast, the mode on screen and a short wake log live in RTC memory.
 #include "app.h"
@@ -19,21 +20,31 @@
 #include "news.h"
 #include "sched.h"
 #include "screen.h"
+#include "status.h"
 #include "wake.h"
 #include "wx.h"
 
+#include <ctype.h>
+#include <string.h>
 #include <sys/time.h>
 #include <time.h>
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "driver/temperature_sensor.h"
 #include "driver/usb_serial_jtag.h"
+#include "esp_app_desc.h"
 #include "esp_attr.h"
+#include "esp_image_format.h"
 #include "esp_log.h"
+#include "esp_mac.h"
+#include "esp_ota_ops.h"
 #include "esp_sleep.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "nvs.h"
 #include "nvs_flash.h"
 
 static const char *TAG = "picpak";
@@ -55,10 +66,20 @@ RTC_DATA_ATTR static int64_t s_sync_utc, s_next_fetch;
 RTC_DATA_ATTR static uint8_t s_shown;
 RTC_DATA_ATTR static event_t s_events[EVENTS];
 RTC_DATA_ATTR static uint32_t s_count, s_printed;
+// For System Status.
+RTC_DATA_ATTR static int64_t s_news_sync, s_flashed;
+RTC_DATA_ATTR static uint8_t s_fetch_failures;
+RTC_DATA_ATTR static bool s_news_failed;
+RTC_DATA_ATTR static int s_rssi, s_link_ms;
+RTC_DATA_ATTR static uint32_t s_app_bytes, s_app_part_bytes;
+RTC_DATA_ATTR static batt_sample_t s_trend[STATUS_TREND_SAMPLES];
+RTC_DATA_ATTR static uint32_t s_trend_count;
 
 static uint8_t s_fb[FB_BYTES];
 static char s_body[24576];   // the NPR feed is about 14 KB
 static int s_batt_mv = -1;
+static wake_t s_wake;
+static bool s_imu_ok;
 
 // One worker task runs the slow jobs so the button keeps being read.
 typedef enum { JOB_FETCH, JOB_DRAW } job_kind_t;
@@ -84,7 +105,29 @@ void app_status_line(void) {
              s_wx.count, s_sync_utc && clock ? now - s_sync_utc : -1LL, clock ? s_next_fetch - now : -1LL, keypin_errors());
 }
 
+// When this build was first seen with a set clock. NVS keeps it per ELF hash,
+// so a reset keeps the date and a new flash replaces it.
+static void note_flash(void) {
+    if (s_flashed) return;
+    char sha[17];
+    esp_app_get_elf_sha256(sha, sizeof sha);
+    nvs_handle_t h;
+    if (nvs_open("status", NVS_READWRITE, &h) != ESP_OK) return;
+    char stored[17] = "";
+    size_t n = sizeof stored;
+    int64_t t = 0, now = time(NULL);
+    if (nvs_get_str(h, "elf", stored, &n) == ESP_OK && strcmp(stored, sha) == 0 && nvs_get_i64(h, "flashed", &t) == ESP_OK) {
+        s_flashed = t;
+    } else if (sched_time_valid(now) && nvs_set_str(h, "elf", sha) == ESP_OK && nvs_set_i64(h, "flashed", now) == ESP_OK &&
+               nvs_commit(h) == ESP_OK) {
+        s_flashed = now;
+        ESP_LOGI(TAG, "new build %s", sha);
+    }
+    nvs_close(h);
+}
+
 static void do_fetch(void) {
+    int64_t started = esp_timer_get_time();
     size_t len = 0;
     int64_t date = 0;
     esp_err_t err = net_fetch(WX_URL, s_body, sizeof s_body, &len, &date);
@@ -111,19 +154,97 @@ static void do_fetch(void) {
         err = net_fetch(NEWS_URL, s_body, sizeof s_body, &len, &date);
         net_stop();
         static news_t parsed_news;
+        s_news_failed = true;
         if (err != ESP_OK) ESP_LOGE(TAG, "news fetch failed: %s", esp_err_to_name(err));
         else if (!news_parse(s_body, len, &parsed_news)) ESP_LOGE(TAG, "news did not parse (%u bytes)", (unsigned)len);
-        else { s_news = parsed_news; ESP_LOGI(TAG, "news: %u bytes, %d headlines", (unsigned)len, parsed_news.count); }
+        else {
+            s_news = parsed_news;
+            s_news_sync = time(NULL);
+            s_news_failed = false;
+            ESP_LOGI(TAG, "news: %u bytes, %d headlines", (unsigned)len, parsed_news.count);
+        }
     }
     int64_t now = time(NULL);
+    if (s_fetch_result == FETCH_OK) {
+        s_fetch_failures = 0;
+        s_link_ms = (int)((esp_timer_get_time() - started) / 1000);
+        status_trend_add(s_trend, STATUS_TREND_SAMPLES, &s_trend_count, now, s_batt_mv);
+        note_flash();
+    } else if (s_fetch_failures < 255) {
+        s_fetch_failures++;
+    }
+    s_rssi = net_rssi();
     s_next_fetch = s_fetch_result == FETCH_OK ? sched_next_fetch(now) : now + RETRY_S;
+}
+
+static const char *reset_name(esp_reset_reason_t r) {
+    switch (r) {
+    case ESP_RST_POWERON:   return "POWER";
+    case ESP_RST_EXT:       return "PIN";
+    case ESP_RST_SW:        return "SOFT";
+    case ESP_RST_PANIC:     return "PANIC";
+    case ESP_RST_INT_WDT:
+    case ESP_RST_TASK_WDT:
+    case ESP_RST_WDT:       return "WATCHDOG";
+    case ESP_RST_DEEPSLEEP: return "SLEEP";
+    case ESP_RST_BROWNOUT:  return "BROWNOUT";
+    case ESP_RST_USB:       return "USB";
+    case ESP_RST_JTAG:      return "JTAG";
+    default:                return "OTHER";
+    }
+}
+
+static void read_status(status_t *st) {
+    int64_t now = time(NULL);
+    *st = (status_t){ .batt_mv = s_batt_mv, .now = sched_time_valid(now) ? now : 0, .utc_offset = s_wx.utc_offset,
+                      .wx_sync = s_sync_utc, .news_sync = s_news_sync, .next_fetch = s_next_fetch,
+                      .fetch_failures = s_fetch_failures, .news_failed = s_news_failed, .rssi = s_rssi,
+                      .link_ms = s_link_ms };
+    if (st->now) status_trend(s_trend, STATUS_TREND_SAMPLES, s_trend_count, now, s_batt_mv, &st->trend_mv, &st->trend_hours);
+
+    temperature_sensor_handle_t ts = NULL;
+    temperature_sensor_config_t tcfg = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
+    if (temperature_sensor_install(&tcfg, &ts) == ESP_OK) {
+        if (temperature_sensor_enable(ts) == ESP_OK) {
+            st->core_ok = temperature_sensor_get_celsius(ts, &st->core_c) == ESP_OK;
+            temperature_sensor_disable(ts);
+        }
+        temperature_sensor_uninstall(ts);
+    }
+
+    // The image size only changes with a flash, which also clears RTC memory.
+    if (!s_app_bytes) {
+        const esp_partition_t *p = esp_ota_get_running_partition();
+        esp_image_metadata_t md;
+        if (p && esp_image_get_metadata(&(esp_partition_pos_t){ .offset = p->address, .size = p->size }, &md) == ESP_OK) {
+            s_app_bytes = md.image_len;
+            s_app_part_bytes = p->size;
+        }
+    }
+    st->app_bytes = s_app_bytes;
+    st->app_part_bytes = s_app_part_bytes;
+
+    strlcpy(st->build, esp_app_get_description()->version, sizeof st->build);
+    note_flash();
+    st->flashed = s_flashed;
+    st->accel_ok = s_imu_ok && imu_sample_mg(&st->accel_mg[0], &st->accel_mg[1], &st->accel_mg[2]) == ESP_OK;
 }
 
 static void do_draw(uint8_t mode) {
     screen_ctx_t ctx = { .mode = mode, .modes = MODES, .batt_pct = batt_pct(s_batt_mv), .sync_utc = s_sync_utc };
     if (mode == 0) screen_env(s_fb, &s_wx, &ctx);
     else if (mode == 1) screen_news(s_fb, &s_news, (int64_t)time(NULL), s_wx.utc_offset, &ctx);
-    else screen_placeholder(s_fb, &ctx);
+    else if (mode == 2) {
+        static status_t st;
+        read_status(&st);
+        uint8_t mac[6] = { 0 };
+        esp_read_mac(mac, ESP_MAC_WIFI_STA);
+        char device[16], wake[16];
+        snprintf(device, sizeof device, "PICPAK-%02X%02X", mac[4], mac[5]);
+        strlcpy(wake, wake_name(s_wake), sizeof wake);
+        for (char *c = wake; *c; c++) *c = (char)toupper((unsigned char)*c);
+        screen_status(s_fb, &st, device, wake, reset_name(esp_reset_reason()), &ctx);
+    } else screen_placeholder(s_fb, &ctx);
     ESP_LOGI(TAG, "drawing mode %d", mode + 1);
     esp_err_t err = epd_show(s_fb);
     if (err == ESP_OK) s_shown = mode;
@@ -203,7 +324,8 @@ void app_main(void) {
     ESP_ERROR_CHECK(keypin_begin());
     ESP_ERROR_CHECK(epd_begin());
     uint8_t who = 0;
-    if (imu_begin(&who) == ESP_OK) imu_power_down();   // unused here, and 150 µA when left running
+    s_imu_ok = imu_begin(&who) == ESP_OK;
+    if (s_imu_ok) imu_power_down();   // off between readings; 150 µA when left running
     else ESP_LOGW(TAG, "IMU not found (WHO_AM_I 0x%02X)", who);
 
     esp_err_t nv = nvs_flash_init();   // Wi-Fi keeps calibration here
@@ -217,6 +339,7 @@ void app_main(void) {
     uint64_t pins = src == WAKE_SRC_GPIO ? esp_sleep_get_gpio_wakeup_status() : 0;
     bool down = keypin_pressed();
     wake_t cause = wake_classify(src, pins, 0, down);
+    s_wake = cause;
     int mv = keypin_battery_mv();
     if (mv > 0) s_batt_mv = mv;
 
@@ -265,7 +388,7 @@ void app_main(void) {
 
         if (was_busy && !s_busy && last_kind == JOB_FETCH) {
             fetched = s_fetch_result;
-            if (s_fetch_result == FETCH_OK && s_shown <= 1 && pending == 0) redraw = true;
+            if (s_fetch_result == FETCH_OK && s_shown <= 2 && pending == 0) redraw = true;
         }
         was_busy = s_busy;
 
@@ -273,7 +396,7 @@ void app_main(void) {
             bool settled = !b.stable && ms - last_input >= SETTLE_MS;
             if (pending && settled) {
                 uint8_t target = (uint8_t)((s_shown + pending) % MODES);
-                if (target <= 1 && fetch) {
+                if (target <= 2 && fetch) {
                     fetch = false; last_kind = JOB_FETCH; run(JOB_FETCH, 0);
                 } else {
                     int fresh = keypin_battery_mv();

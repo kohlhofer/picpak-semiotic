@@ -105,6 +105,27 @@ int gfx_text(uint8_t *fb, int x, int y, const font_t *f, fb_color_t color, const
     return w;
 }
 
+void gfx_rrect(uint8_t *fb, int x, int y, int w, int h, int r, fb_color_t color) {
+    if (r * 2 > w) r = w / 2;
+    if (r * 2 > h) r = h / 2;
+    for (int j = 0; j < h; j++) {
+        for (int i = 0; i < w; i++) {
+            // Distance from the nearest corner centre, measured at pixel centres.
+            float cx = i < r ? r - (i + 0.5f) : i >= w - r ? (i + 0.5f) - (w - r) : 0;
+            float cy = j < r ? r - (j + 0.5f) : j >= h - r ? (j + 0.5f) - (h - r) : 0;
+            if (cx > 0 && cy > 0 && cx * cx + cy * cy > (float)(r * r)) continue;
+            fb_set(fb, x + i, y + j, color);
+        }
+    }
+}
+
+int gfx_fit(const font_t *f, char *s, int width) {
+    size_t n = strlen(s);
+    while (n && gfx_text_width(f, s) > width) s[--n] = 0;
+    while (n && s[n - 1] == ' ') s[--n] = 0;
+    return gfx_text_width(f, s);
+}
+
 void gfx_dotted_vline(uint8_t *fb, int x, int y0, int y1, fb_color_t color) {
     for (int y = y0; y < y1; y += 2) fb_set(fb, x, y, color);
 }

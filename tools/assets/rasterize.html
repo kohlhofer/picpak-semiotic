@@ -183,6 +183,71 @@
     return Array.from(F.idx).join('');
   }
 
+  // System Status placards, 22 px. Power cell and comms link come in five
+  // levels (0-4 segments or bars); gauge fills are yellow except on a yellow
+  // ground, where they are black.
+  const STATUS = [
+    ['CELL', 5, (c, X, Yy, u, lw, lvl) => {
+      c.lineWidth = lw; c.strokeRect(X(0.8), Yy(2.2), 7.6 * u, 5.6 * u);
+      c.fillRect(X(8.4), Yy(3.8), 1.2 * u, 2.4 * u);
+      for (let i = 0; i < lvl; i++) c.fillRect(X(1.9 + i * 1.6), Yy(3.3), 1.1 * u, 3.4 * u);
+    }, (c, X, Yy, u, lw, lvl) => {
+      for (let i = 0; i < lvl; i++) c.fillRect(X(1.9 + i * 1.6) + 1, Yy(3.3) + 1, 1.1 * u - 2, 3.4 * u - 2);
+    }],
+    ['LINK', 5, (c, X, Yy, u, lw, lvl) => {
+      for (let i = 0; i < 4; i++) {
+        const h = 2 + i * 2.2, x = 0.8 + i * 2.4;
+        if (i < lvl) c.fillRect(X(x), Yy(9.6 - h), 1.8 * u, h * u);
+        else { c.lineWidth = 1; c.strokeRect(X(x) + 0.5, Yy(9.6 - h) + 0.5, 1.8 * u - 1, h * u - 1); }
+      }
+    }, (c, X, Yy, u, lw, lvl) => {
+      for (let i = 0; i < lvl; i++) { const h = 2 + i * 2.2, x = 0.8 + i * 2.4; c.fillRect(X(x) + 1, Yy(9.6 - h) + 1, 1.8 * u - 2, h * u - 2); }
+    }],
+    ['CORE', 1, (c, X, Yy, u, lw) => {
+      c.fillRect(X(2.6), Yy(2.6), 4.8 * u, 4.8 * u);
+      c.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const o = 3.4 + i * 1.6;
+        ln(c, X(o), Yy(0.4), X(o), Yy(2)); ln(c, X(o), Yy(8), X(o), Yy(9.6));
+        ln(c, X(0.4), Yy(o), X(2), Yy(o)); ln(c, X(8), Yy(o), X(9.6), Yy(o));
+      }
+    }],
+    ['STORE', 1, (c, X, Yy, u, lw) => {
+      c.lineWidth = Math.max(1, Math.round(lw * 0.75));
+      for (const y of [1.2, 4.2, 7.2]) { c.beginPath(); c.ellipse(X(5), Yy(y + 0.8), 4 * u, 1.2 * u, 0, 0, Math.PI * 2); c.stroke(); }
+      ln(c, X(1), Yy(2), X(1), Yy(8)); ln(c, X(9), Yy(2), X(9), Yy(8));
+    }],
+    ['CHIP', 1, (c, X, Yy, u, lw) => {
+      c.lineWidth = lw; c.strokeRect(X(2.2), Yy(2.2), 5.6 * u, 5.6 * u);
+      c.fillRect(X(3.8), Yy(3.8), 2.4 * u, 2.4 * u);
+      c.lineWidth = 1;
+      for (const o of [3.4, 5, 6.6]) { ln(c, X(o), Yy(0.4), X(o), Yy(2.2)); ln(c, X(o), Yy(7.8), X(o), Yy(9.6)); }
+    }],
+    ['FEED', 1, (c, X, Yy, u, lw) => {
+      disc(c, X(1.8), Yy(8.2), 1.2 * u);
+      c.lineWidth = Math.max(1, Math.round(lw * 0.8));
+      for (const r of [3.6, 6.2]) { c.beginPath(); c.arc(X(1.8), Yy(8.2), r * u, -Math.PI / 2, 0); c.stroke(); }
+      c.fillRect(X(6.6), Yy(0.8), 2.8 * u, 2.8 * u);
+    }],
+    ['TILT', 1, (c, X, Yy, u, lw) => {
+      c.lineWidth = Math.max(1, Math.round(lw * 0.75)); c.beginPath(); c.arc(X(5), Yy(5), 4.4 * u, 0, Math.PI * 2); c.stroke();
+      c.save(); c.beginPath(); c.arc(X(5), Yy(5), 4.4 * u, 0, Math.PI * 2); c.clip();
+      poly(c, [[X(0), Yy(6.2)], [X(10), Yy(4.2)], [X(10), Yy(10)], [X(0), Yy(10)]]); c.restore();
+    }],
+  ];
+  function statusTile(ink, accent, s, sev, lvl) {
+    const F = new Frame(s, s);
+    const ground = sev === 2 ? R : sev === 1 ? Y : W, fg = sev === 2 ? W : K;
+    const b = Math.max(2, Math.round(s / 16)), r = Math.max(3, Math.round(s * 0.17));
+    F.op(K, 0, 0, s, s, c => { rrect(c, 0, 0, s, s, r); c.fill(); });
+    F.op(ground, b, b, s - 2 * b, s - 2 * b, c => { rrect(c, b, b, s - 2 * b, s - 2 * b, Math.max(1, r - b)); c.fill(); });
+    const pad = Math.round(s * 0.19), u = (s - 2 * pad) / 10, lw = Math.max(2, Math.round(s / 12));
+    const X = a => pad + a * u, Yy = a => pad + a * u, box = [b, b, s - 2 * b, s - 2 * b];
+    F.op(fg, ...box, c => ink(c, X, Yy, u, lw, lvl));
+    if (accent) F.op(sev === 1 ? K : Y, ...box, c => accent(c, X, Yy, u, lw, lvl));
+    return Array.from(F.idx).join('');
+  }
+
   let ascii = '';
   for (let i = 32; i < 127; i++) ascii += String.fromCharCode(i);
 
@@ -190,15 +255,17 @@
     // Jersey 10 is drawn on a 75-unit grid at 1400 units per em, so at 18.6667 px
     // one grid step is exactly one panel pixel and every stroke lands whole.
     ['JR19', '18.6667px "Jersey 10"', ascii],
-    ['SK8', '8px Silkscreen', ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%:+-/.'],
+    ['SK8', '8px Silkscreen', ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%:+-/.°'],
     ['SK16', '16px Silkscreen', ' 0123456789%-'],
     ['BS17', '800 17px "Big Shoulders Display"', '0123456789-°'],
-    ['BS24', '800 24px "Big Shoulders Display"', '0123456789-°'],
+    // Tracked one pixel: at 800 weight the condensed capitals touch.
+    ['BS20', '800 20px "Big Shoulders Display"', ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789%°-+:/.', 1],
+    ['BS24', '800 24px "Big Shoulders Display"', '0123456789-°%'],
     ['BS60', '800 60px "Big Shoulders Display"', '0123456789-°'],
     ['BS104', '800 104px "Big Shoulders Display"', '0123456789'],
   ];
 
-  function glyph(font, ch, size) {
+  function glyph(font, ch, size, track = 0) {
     const S = Math.ceil(size * 3), penX = Math.round(size * 0.5), base = Math.round(size * 2);
     const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
     const c = cv.getContext('2d', { willReadFrequently: true });
@@ -210,22 +277,27 @@
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
       if (d[(y * S + x) * 4 + 3] >= 128) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     }
-    if (x1 < 0) return { ch, w: 0, h: 0, xo: 0, yo: 0, adv: Math.round(adv), bits: '' };
+    if (x1 < 0) return { ch, w: 0, h: 0, xo: 0, yo: 0, adv: Math.round(adv) + track, bits: '' };
     let bits = '';
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) bits += d[(y * S + x) * 4 + 3] >= 128 ? '1' : '0';
-    return { ch, w: x1 - x0 + 1, h: y1 - y0 + 1, xo: x0 - penX, yo: y0 - base, adv: Math.round(adv), bits };
+    return { ch, w: x1 - x0 + 1, h: y1 - y0 + 1, xo: x0 - penX, yo: y0 - base, adv: Math.round(adv) + track, bits };
   }
 
   await Promise.all(FONTS.map(f => document.fonts.load(f[1])));
   const out = { tiles: {}, fonts: {}, orbits: [] };
   for (let h = 0; h < 24; h++) out.orbits.push(orbit(h, 36));
+  out.status = STATUS.map(([name, levels, ink, accent]) => {
+    const tiles = [];
+    for (let l = 0; l < levels; l++) for (let sev = 0; sev < 3; sev++) tiles.push(statusTile(ink, accent, 22, sev, levels > 1 ? l : 0));
+    return { name, levels, tiles };
+  });
   for (const [name, sym] of SYM) {
     out.tiles[name] = {};
     for (const s of [16, 24, 48, 88]) out.tiles[name][s] = [0, 1, 2].map(sev => tile(sym, s, sev));
   }
-  for (const [name, font, chars] of FONTS) {
+  for (const [name, font, chars, track] of FONTS) {
     const size = parseFloat(font.match(/([\d.]+)px/)[1]);
-    out.fonts[name] = { font, glyphs: Array.from(chars).map(ch => glyph(font, ch, size)) };
+    out.fonts[name] = { font, glyphs: Array.from(chars).map(ch => glyph(font, ch, size, track)) };
   }
   out.fontCheck = FONTS.map(f => [f[1], document.fonts.check(f[1])]);
   document.getElementById('out').textContent = JSON.stringify(out);

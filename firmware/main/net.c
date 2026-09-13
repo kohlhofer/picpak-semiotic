@@ -21,6 +21,7 @@ static const char *TAG = "net";
 static EventGroupHandle_t s_events;
 static bool s_started;
 static int s_retries;
+static int s_rssi;
 
 static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data) {
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START) {
@@ -65,7 +66,11 @@ static esp_err_t join(void) {
     // Units of 0.25 dBm. The PicPak's supply browns out at full power (varanu5).
     esp_wifi_set_max_tx_power(40);
     EventBits_t b = xEventGroupWaitBits(s_events, GOT_IP | GAVE_UP, pdFALSE, pdFALSE, pdMS_TO_TICKS(JOIN_MS));
-    if (b & GOT_IP) return ESP_OK;
+    if (b & GOT_IP) {
+        wifi_ap_record_t ap;
+        if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) s_rssi = ap.rssi;
+        return ESP_OK;
+    }
     ESP_LOGE(TAG, "could not join %s", b & GAVE_UP ? "after retries" : "in time");
     return ESP_ERR_TIMEOUT;
 }
@@ -109,6 +114,8 @@ esp_err_t net_fetch(const char *url, char *buf, size_t cap, size_t *len, int64_t
     *date_utc = body.date;
     return ESP_OK;
 }
+
+int net_rssi(void) { return s_rssi; }
 
 void net_stop(void) {
     if (!s_started) return;

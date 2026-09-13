@@ -39,12 +39,14 @@ test:
 	$(HOST_CC) $(SCREEN) test/test_gfx.c -o build/test_gfx
 	$(HOST_CC) firmware/main/sched.c firmware/main/batt.c test/test_sched_batt.c -o build/test_sched_batt
 	$(HOST_CC) $(SCREEN) firmware/main/news.c firmware/main/sched.c test/test_news.c -o build/test_news
+	$(HOST_CC) firmware/main/status.c firmware/main/batt.c test/test_status.c -lm -o build/test_status
 	./build/test_fb
 	./build/test_wake
 	./build/test_wx $(FIXTURE)
 	./build/test_gfx
 	./build/test_sched_batt
 	./build/test_news test/fixtures/npr-news-2026-09-13.xml
+	./build/test_status
 
 # Redraw the placard and font bitmaps from tools/assets/rasterize.html.
 assets:
@@ -52,11 +54,11 @@ assets:
 
 # Render a screen from live Cary weather and NPR headlines to build/preview.png.
 # FORECAST=path and NEWS=path render saved responses instead. MODE picks the
-# screen: 1 environmental panel, 2 System Updates, 3-5 placeholders.
+# screen: 1 environmental panel, 2 System Updates, 3 System Status, 4-5 placeholders.
 MODE ?= 1
 preview:
 	@mkdir -p build
-	$(HOST_CC) $(SCREEN) $(WX) firmware/main/news.c firmware/main/sched.c firmware/main/screen.c tools/preview.c -lm -o build/preview
+	$(HOST_CC) $(SCREEN) $(WX) firmware/main/news.c firmware/main/sched.c firmware/main/status.c firmware/main/batt.c firmware/main/screen.c tools/preview.c -lm -o build/preview
 	@if [ -z "$(FORECAST)" ]; then curl -sf "$$(sed -n 's/.*WX_URL "\(.*\)" \\/\1/p;s/^ *"\(.*\)" \\$$/\1/p;s/^ *"\(.*\)"$$/\1/p' firmware/main/wx.h | tr -d '\n')" -o build/forecast.json; fi
 	@if [ -z "$(NEWS)" ]; then curl -sf "$$(sed -n 's/.*NEWS_URL *"\(.*\)"/\1/p' firmware/main/news.h)" -o build/news.xml; fi
 	./build/preview $(or $(FORECAST),build/forecast.json) $(or $(NEWS),build/news.xml) build/preview.ppm $(MODE)

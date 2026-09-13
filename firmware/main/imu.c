@@ -61,6 +61,15 @@ esp_err_t imu_accel_mg(int *x, int *y, int *z) {
     return ESP_OK;
 }
 
+esp_err_t imu_sample_mg(int *x, int *y, int *z) {
+    esp_err_t err = write_reg(REG_CTRL1_XL, 0x40);   // 104 Hz, +/-2 g
+    if (err != ESP_OK) return err;
+    vTaskDelay(pdMS_TO_TICKS(60));                  // the first samples after power-up are not settled
+    err = imu_accel_mg(x, y, z);
+    write_reg(REG_CTRL1_XL, 0);
+    return err;
+}
+
 // Route accelerometer data-ready to one output at a time. Data-ready stays
 // high until the sample is read, so GPIO5 rises only for the wired output.
 int imu_find_int_pin(void) {

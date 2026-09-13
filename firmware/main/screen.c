@@ -1,4 +1,5 @@
 #include "screen.h"
+#include "batt.h"
 #include "gfx.h"
 
 #include <math.h>
@@ -229,6 +230,71 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
     }
 
     sync_text(buf, sizeof buf, ctx, utc_offset, "");
+    footer(fb, ctx, buf);
+}
+
+void screen_status(uint8_t *fb, const status_t *s, const char *device, const char *wake, const char *reset,
+                   const screen_ctx_t *ctx) {
+    char buf[64];
+    fb_fill(fb, FB_WHITE);
+    if (s->now) {
+        struct tm t;
+        local_tm(s->now, s->utc_offset, &t);
+        snprintf(buf, sizeof buf, "%s  %02d:%02d", device, t.tm_hour, t.tm_min);
+    } else {
+        snprintf(buf, sizeof buf, "%s", device);
+    }
+    header(fb, "SYSTEM STATUS", buf);
+
+    readout_t cell = status_cell(s), rows[8];
+    int n = status_rows(s, rows, 8);
+    sev_t verdict = status_verdict(&cell, rows, n);
+    const int top = BAND_H + 7, bottom = EDGE_B - 15 - 6;
+
+    // Power cell: a tall gauge of ten segments with its terminal on top.
+    const int gx = EDGE_L, gw = 70, gy = top + 8, gh = bottom - gy - 24;
+    gfx_rrect(fb, gx + 22, gy - 6, 26, 10, 3, FB_BLACK);
+    gfx_rrect(fb, gx, gy, gw, gh, 8, FB_BLACK);
+    gfx_rrect(fb, gx + 3, gy + 3, gw - 6, gh - 6, 6, FB_WHITE);
+    int pct = batt_pct(s->batt_mv);
+    const int segs = 10, sh = (gh - 12) / segs;
+    int lit = pct < 0 ? 0 : (pct + 5) / 10;
+    for (int i = 0; i < segs; i++) {
+        int sy = gy + gh - 6 - (i + 1) * sh + 2;
+        fb_rect(fb, gx + 8, sy, gw - 16, sh - 3, FB_BLACK);
+        fb_color_t fill = i >= lit ? FB_WHITE : lit <= 2 ? FB_RED : FB_YELLOW;
+        fb_rect(fb, gx + 10, sy + 2, gw - 20, sh - 7, fill);
+    }
+    gfx_text(fb, gx + gw / 2, bottom - 4, &FONT_BS24, cell.sev == SEV_DANGER ? FB_RED : FB_BLACK, cell.value, GFX_CENTER);
+
+    // Verdict: black when all is well, yellow for caution, red for attention.
+    const int rx = gx + gw + 14, vw = EDGE_R - rx;
+    static const char *WORD[] = { "NOMINAL", "CAUTION", "ATTENTION" };
+    fb_color_t vfill = verdict == SEV_DANGER ? FB_RED : verdict == SEV_CAUTION ? FB_YELLOW : FB_BLACK;
+    fb_color_t vink = verdict == SEV_CAUTION ? FB_BLACK : FB_WHITE;
+    gfx_rrect(fb, rx, top, vw, 30, 6, FB_BLACK);
+    gfx_rrect(fb, rx + 2, top + 2, vw - 4, 26, 5, vfill);
+    gfx_text(fb, rx + 10, top + 24, &FONT_BS20, vink, WORD[verdict], GFX_LEFT);
+    gfx_text(fb, EDGE_R - 10, top + 19, &FONT_SK8, vink, cell.sub, GFX_RIGHT);
+
+    // Readouts
+    int y = top + 42;
+    for (int i = 0; i < n; i++) {
+        if (y + 24 > bottom) break;
+        const readout_t *r = &rows[i];
+        gfx_sprite(fb, rx, y, asset_status(r->icon, r->level, (uint8_t)r->sev), STATUS_PX, STATUS_PX);
+        gfx_text(fb, rx + 30, y + 9, &FONT_SK8, FB_BLACK, r->label, GFX_LEFT);
+        int vw2 = gfx_text(fb, EDGE_R, y + 17, &FONT_BS20, r->sev == SEV_DANGER ? FB_RED : FB_BLACK, r->value, GFX_RIGHT);
+        char sub[32];
+        snprintf(sub, sizeof sub, "%s", r->sub);
+        gfx_fit(&FONT_SK8, sub, EDGE_R - vw2 - 8 - (rx + 30));
+        gfx_text(fb, rx + 30, y + 21, &FONT_SK8, FB_BLACK, sub, GFX_LEFT);
+        y += 30;
+        if (y + 24 <= bottom)
+            for (int x = rx + 30; x < EDGE_R; x += 2) fb_set(fb, x, y - 4, FB_BLACK);
+    }
+
+    snprintf(buf, sizeof buf, "WOKE %s  RST %s", wake, reset);
     footer(fb, ctx, buf);
 }
 

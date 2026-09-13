@@ -20,7 +20,9 @@ OUT = ROOT / "firmware/main/assets_gen.c"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 CONDS = ["NOMINAL", "HEAT", "CRYO", "PRECIP", "WIND", "ELEC", "RANGE", "HUMID", "ARID", "RAD", "VIS", "PRES"]
 SIZES = [16, 24, 48, 88]
-FONTS = ["JR19", "SK8", "SK16", "BS17", "BS24", "BS60", "BS104"]
+FONTS = ["JR19", "SK8", "SK16", "BS17", "BS20", "BS24", "BS60", "BS104"]
+STATUS_PX = 22
+STATUS_ICONS = ["CELL", "LINK", "CORE", "STORE", "CHIP", "FEED", "TILT"]
 ORBIT_PX = 36
 
 
@@ -112,7 +114,28 @@ const uint8_t *asset_orbit(int hour) {{
 }}
 """)
 
-    total = len(blob) + len(orbits)
+    status, status_off = bytearray(), []
+    assert [x["name"] for x in d["status"]] == STATUS_ICONS
+    for icon in d["status"]:
+        status_off.append(len(status) // (STATUS_PX * STATUS_PX // 4))
+        for digits in icon["tiles"]:
+            assert len(digits) == STATUS_PX * STATUS_PX
+            status += pack2(digits)
+    levels = [x["levels"] for x in d["status"]]
+    parts.append(f"static const uint8_t STATUS_DATA[{len(status)}] = {{\n{c_bytes(status)}\n}};")
+    parts.append(f"static const uint16_t STATUS_FIRST[{len(status_off)}] = {{ {', '.join(map(str, status_off))} }};")
+    parts.append(f"static const uint8_t STATUS_LEVELS[{len(levels)}] = {{ {', '.join(map(str, levels))} }};")
+    parts.append(f"""
+const uint8_t *asset_status(status_icon_t icon, int level, uint8_t sev) {{
+    if ((unsigned)icon >= STI_COUNT || sev > 2) return 0;
+    int levels = STATUS_LEVELS[icon];
+    if (level < 0) level = 0;
+    if (level >= levels) level = levels - 1;
+    return &STATUS_DATA[(STATUS_FIRST[icon] + level * 3 + sev) * {STATUS_PX * STATUS_PX // 4}];
+}}
+""")
+
+    total = len(blob) + len(orbits) + len(status)
     for name in FONTS:
         glyphs = d["fonts"][name]["glyphs"]
         bits, rows, chars = bytearray(), [], ""

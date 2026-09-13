@@ -8,6 +8,9 @@
 esp_err_t imu_begin(uint8_t *who_am_i);   // SPI device and INT input, reads the ID; writes no config
 esp_err_t imu_accel_mg(int *x, int *y, int *z);
 
+// Accelerometer on at 104 Hz for one settled sample, then off again.
+esp_err_t imu_sample_mg(int *x, int *y, int *z);
+
 // Which IMU interrupt output reaches GPIO5: 1 or 2, 0 if neither, 3 if both.
 int       imu_find_int_pin(void);
 
