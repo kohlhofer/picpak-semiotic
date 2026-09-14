@@ -142,6 +142,8 @@ static void note_flash(void) {
     nvs_close(h);
 }
 
+static void yield_tick(void) { vTaskDelay(1); }
+
 // ISS elements and the nearest asteroid every six hours, and the passes they
 // give. Each keeps its last good value when a fetch fails.
 static void fetch_orbit(int64_t now) {
@@ -179,6 +181,9 @@ static void fetch_orbit(int64_t now) {
     bool stale = !s_orbit.searched_at || now - s_orbit.searched_at >= ORBIT_REFRESH_S ||
                  (s_orbit.count && !orbit_next_pass(&s_orbit, now));
     if ((fresh_tle || stale) && s_orbit.l1[0] && sgp4_parse(s_orbit.l1, s_orbit.l2, &sat)) {
+        // Seconds of soft-float work on one core: let the button loop and the
+        // idle task (which feeds the watchdog) run in between.
+        pass_set_yield(yield_tick);
         static pass_t found[ORBIT_PASSES];
         int64_t t0 = esp_timer_get_time();
         int n = pass_find(&sat, &SITE, now, now + 3 * 86400, PASS_MIN_EL, true, found, ORBIT_PASSES);
@@ -194,8 +199,9 @@ static void do_fetch(void) {
     int64_t started = esp_timer_get_time();
     size_t len = 0;
     int64_t date = 0;
+    // One Wi-Fi session for the forecast, the headlines and the orbit data;
+    // fetch_orbit turns the radio off before its long calculation.
     esp_err_t err = net_fetch(WX_URL, s_body, sizeof s_body, &len, &date);
-    net_stop();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "fetch failed: %s", esp_err_to_name(err));
         s_fetch_result = FETCH_NET_FAILED;
@@ -216,7 +222,6 @@ static void do_fetch(void) {
     // not change the schedule, which the forecast drives.
     if (s_fetch_result == FETCH_OK) {
         err = net_fetch(NEWS_URL, s_body, sizeof s_body, &len, &date);
-        net_stop();
         static news_t parsed_news;
         s_news_failed = true;
         if (err != ESP_OK) ESP_LOGE(TAG, "news fetch failed: %s", esp_err_to_name(err));
@@ -238,6 +243,7 @@ static void do_fetch(void) {
     } else if (s_fetch_failures < 255) {
         s_fetch_failures++;
     }
+    net_stop();   // already off after fetch_orbit; this covers a failed forecast
     s_rssi = net_rssi();
     s_next_fetch = s_fetch_result == FETCH_OK ? sched_next_fetch(now) : now + RETRY_S;
 }

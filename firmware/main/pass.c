@@ -7,8 +7,14 @@
 
 typedef struct { double az, el, psi, r; bool lit; } look_t;
 
+static void (*s_yield)(void);
+static unsigned s_looks;
+
+void pass_set_yield(void (*fn)(void)) { s_yield = fn; }
+
 static bool look_at(const sgp4_t *sat, const site_t *site, double t, look_t *l) {
     double r[3], v[3], ecef[3], o[3], sun[3];
+    if (s_yield && ++s_looks % 32 == 0) s_yield();
     if (!sgp4_at(sat, t, r, v)) return false;
     sky_to_ecef(t, r, ecef);
     sky_look(site, ecef, &l->az, &l->el);
@@ -89,17 +95,26 @@ int pass_find(const sgp4_t *sat, const site_t *site, int64_t from, int64_t to, d
         if (look_at(sat, site, (a + b) / 2, &peak) && peak.el > best_el) best_el = peak.el;
 
         pass_t p = { .rise = (int64_t)llround(rise), .set = (int64_t)llround(set), .max_el = (int16_t)lround(best_el * 10) };
-        for (int i = 0; i < PASS_ARC; i++) {
+        // Visible when sunlit against a dark sky at any of the arc's sample
+        // times. A night sky rules out daylight passes without propagating.
+        for (int i = 0; i < PASS_ARC && !p.visible; i++) {
             double ti = rise + (set - rise) * i / (PASS_ARC - 1);
             look_t li;
+            if (sky_sun_el(site, ti) >= -6.0) continue;
             if (!look_at(sat, site, ti, &li)) return count;
-            p.az[i] = (int16_t)lround(li.az * 10);
-            p.el[i] = (int16_t)lround(li.el * 10);
-            if (li.lit && sky_sun_el(site, ti) < -6.0) p.visible = true;
+            p.visible = li.lit;
         }
-        p.rise_az = (int16_t)lround(p.az[0] / 10.0);
-        p.set_az = (int16_t)lround(p.az[PASS_ARC - 1] / 10.0);
-        if ((!visible_only || p.visible) && p.set > from && p.rise < to) out[count++] = p;
+        if ((!visible_only || p.visible) && p.set > from && p.rise < to) {
+            for (int i = 0; i < PASS_ARC; i++) {
+                look_t li;
+                if (!look_at(sat, site, rise + (set - rise) * i / (PASS_ARC - 1), &li)) return count;
+                p.az[i] = (int16_t)lround(li.az * 10);
+                p.el[i] = (int16_t)lround(li.el * 10);
+            }
+            p.rise_az = (int16_t)lround(p.az[0] / 10.0);
+            p.set_az = (int16_t)lround(p.az[PASS_ARC - 1] / 10.0);
+            out[count++] = p;
+        }
 
         t = set + 60.0;
         if (!look_at(sat, site, t, &l)) return count;

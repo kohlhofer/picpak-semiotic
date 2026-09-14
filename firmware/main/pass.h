@@ -23,5 +23,9 @@ typedef struct {
 int pass_find(const sgp4_t *sat, const site_t *site, int64_t from, int64_t to, double min_el, bool visible_only,
               pass_t *out, int max);
 
+// Called every few dozen propagations during pass_find, so a caller on a
+// single-core RTOS can let other tasks run. NULL (the default) for none.
+void pass_set_yield(void (*fn)(void));
+
 // Where the satellite is: azimuth and elevation (degrees), and whether sunlit.
 bool pass_look(const sgp4_t *sat, const site_t *site, double unix_s, double *az, double *el, bool *sunlit);

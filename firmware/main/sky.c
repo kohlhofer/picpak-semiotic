@@ -35,21 +35,35 @@ void sky_to_ecef(double unix_s, const double eci[3], double ecef[3]) {
     ecef[2] = eci[2];
 }
 
+typedef struct { site_t site; double o[3], sl, cl, so, co; } site_cache_t;
+
+// The pass search looks from one site thousands of times; keep its position
+// and trigonometry from the last call.
+static const site_cache_t *cached(const site_t *site) {
+    static site_cache_t c = { .site = { 1e9, 1e9, 1e9 } };
+    if (c.site.lat != site->lat || c.site.lon != site->lon || c.site.h_km != site->h_km) {
+        c.site = *site;
+        const double a = 6378.137, e2 = 0.00669437999014;
+        double lat = site->lat * DEG, lon = site->lon * DEG;
+        c.sl = sin(lat); c.cl = cos(lat); c.so = sin(lon); c.co = cos(lon);
+        double n = a / sqrt(1.0 - e2 * c.sl * c.sl);
+        c.o[0] = (n + site->h_km) * c.cl * c.co;
+        c.o[1] = (n + site->h_km) * c.cl * c.so;
+        c.o[2] = (n * (1.0 - e2) + site->h_km) * c.sl;
+    }
+    return &c;
+}
+
 void sky_site_ecef(const site_t *site, double ecef[3]) {
-    const double a = 6378.137, e2 = 0.00669437999014;
-    double lat = site->lat * DEG, lon = site->lon * DEG;
-    double n = a / sqrt(1.0 - e2 * sin(lat) * sin(lat));
-    ecef[0] = (n + site->h_km) * cos(lat) * cos(lon);
-    ecef[1] = (n + site->h_km) * cos(lat) * sin(lon);
-    ecef[2] = (n * (1.0 - e2) + site->h_km) * sin(lat);
+    const site_cache_t *c = cached(site);
+    for (int i = 0; i < 3; i++) ecef[i] = c->o[i];
 }
 
 void sky_look(const site_t *site, const double p[3], double *az, double *el) {
-    double o[3];
-    sky_site_ecef(site, o);
+    const site_cache_t *c = cached(site);
+    const double *o = c->o;
     double dx = p[0] - o[0], dy = p[1] - o[1], dz = p[2] - o[2];
-    double lat = site->lat * DEG, lon = site->lon * DEG;
-    double sl = sin(lat), cl = cos(lat), so = sin(lon), co = cos(lon);
+    double sl = c->sl, cl = c->cl, so = c->so, co = c->co;
     double e = -so * dx + co * dy;
     double n = -sl * co * dx - sl * so * dy + cl * dz;
     double u = cl * co * dx + cl * so * dy + sl * dz;
