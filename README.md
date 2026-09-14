@@ -1,6 +1,6 @@
-# PicPak Firmware
+# Semiotic
 
-Open replacement firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3. The stock firmware is a Bluetooth photo frame driven from a phone app. This turns it into a small ship's console in the visual language of Ron Cobb's semiotic standard for *Alien*: five screens stepped through with the one button, Wi-Fi once an hour, deep sleep in between.
+Open firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3. The stock firmware is a Bluetooth photo frame driven from a phone app. This turns it into a small ship's console in the visual language of Ron Cobb's semiotic standard for *Alien*: five screens stepped through with the one button, Wi-Fi once an hour, deep sleep in between.
 
 <table>
 <tr>
@@ -54,8 +54,8 @@ Flashing this firmware replaces the stock firmware, and it overwrites the flash 
 2. **Get the firmware.**
 
    ```sh
-   git clone https://github.com/kohlhofer/picpak.git
-   cd picpak
+   git clone https://github.com/kohlhofer/picpak-semiotic.git
+   cd picpak-semiotic
    ```
 
 3. **Make your settings file** and fill in at least your Wi-Fi and location. [Configure](#configure) explains every setting.
