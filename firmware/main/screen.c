@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "batt.h"
 #include "gfx.h"
+#include "sched.h"
 #include "sgp4.h"
 
 #include <math.h>
@@ -329,8 +330,10 @@ static void hhmm(char *buf, size_t n, int64_t utc, int32_t offset) {
 void screen_orbit(uint8_t *fb, const orbit_t *o, const site_t *site, int64_t now, int32_t off, const screen_ctx_t *ctx) {
     char buf[64], tbuf[8];
     fb_fill(fb, FB_WHITE);
+    // After a reset the clock stays unset until a fetch reads a server's Date.
+    bool clock = sched_time_valid(now);
     hhmm(tbuf, sizeof tbuf, now, off);
-    snprintf(buf, sizeof buf, "CARY %.1fN %.1fW  %s", site->lat, -site->lon, tbuf);
+    snprintf(buf, sizeof buf, clock ? "CARY %.1fN %.1fW  %s" : "CARY %.1fN %.1fW", site->lat, -site->lon, tbuf);
     header(fb, "ORBITAL TRACKING", buf);
     const int top = BAND_H + 7;
 
@@ -356,6 +359,23 @@ void screen_orbit(uint8_t *fb, const orbit_t *o, const site_t *site, int64_t now
     }
     gfx_text(fb, icx + 4, icy - R0 * 2 / 3 + 10, &FONT_SK8, FB_BLACK, "30", GFX_LEFT);
     gfx_text(fb, icx + 4, icy - R0 / 3 + 10, &FONT_SK8, FB_BLACK, "60", GFX_LEFT);
+
+    if (!clock) {
+        fb_rect(fb, icx - 4, icy - 4, 9, 9, FB_BLACK);
+        fb_rect(fb, icx - 2, icy - 2, 5, 5, FB_YELLOW);
+        const int rx = 196;
+        gfx_sprite(fb, rx, top + 2, asset_picto(PI_SAT, 0, 0), 36, 36);
+        gfx_text(fb, rx + 44, top + 14, &FONT_SK8, FB_BLACK, "ORBITAL INTERCEPT", GFX_LEFT);
+        gfx_text(fb, rx + 44, top + 26, &FONT_SK8, FB_BLACK, "ISS  STANDBY", GFX_LEFT);
+        gfx_text(fb, rx, top + 80, &FONT_JR37, FB_BLACK, "NO CLOCK", GFX_LEFT);
+        chip(fb, rx, top + 104, FB_YELLOW, FB_BLACK, "AWAITING TIME SYNC", GFX_LEFT);
+        for (int x = rx; x < EDGE_R; x += 2) fb_set(fb, x, top + 128, FB_BLACK);
+        gfx_sprite(fb, rx, top + 134, asset_picto(PI_ROCK, 0, 0), 36, 36);
+        gfx_text(fb, rx + 44, top + 145, &FONT_SK8, FB_BLACK, "ANOMALY TRACKING", GFX_LEFT);
+        gfx_text(fb, rx + 44, top + 157, &FONT_SK8, FB_BLACK, o->neo_ok ? o->neo.des : "STANDBY", GFX_LEFT);
+        footer(fb, ctx, "CLOCK SETS ON NEXT WI-FI FETCH");
+        return;
+    }
 
     const pass_t *p = orbit_next_pass(o, now);
     if (p) {
@@ -499,7 +519,9 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
     struct tm t;
     local_tm(now, off, &t);
     int minute = t.tm_hour * 60 + t.tm_min, yday = t.tm_yday + 1;
-    snprintf(buf, sizeof buf, "%s  %s %02d %s  %02d:%02d", c->ship, DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon], t.tm_hour, t.tm_min);
+    bool clock = sched_time_valid(now);   // no schedule or order without it
+    if (clock) snprintf(buf, sizeof buf, "%s  %s %02d %s  %02d:%02d", c->ship, DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon], t.tm_hour, t.tm_min);
+    else snprintf(buf, sizeof buf, "%s", c->ship);
     header(fb, "CREW MANIFEST", buf);
     const int top = BAND_H + 7, bottom = EDGE_B - 21;
 
@@ -508,7 +530,7 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
     int cw = n ? (EDGE_R - EDGE_L - (n - 1) * gap) / n : 0;
     for (int i = 0; i < n; i++) {
         const crew_member_t *m = &c->member[i];
-        crew_state_t s = crew_state(c, i, minute, t.tm_wday, yday);
+        crew_state_t s = clock ? crew_state(c, i, minute, t.tm_wday, yday) : (crew_state_t){ CREW_ON_DECK, "STANDBY", 0 };
         if (s.kind == CREW_AWAY) away++; else aboard++;
         if (s.kind == CREW_ASLEEP) sleeping++;
         int x = EDGE_L + i * (cw + gap), y = top;
@@ -539,17 +561,20 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
     const int py = top + ch + 8, ph = bottom - py;
     gfx_rrect(fb, EDGE_L, py, EDGE_R - EDGE_L, ph, 6, FB_BLACK);
     gfx_sprite_key(fb, EDGE_L + 8, py + 8, asset_picto(PI_ORDER, 0, 1), 22, 22, FB_WHITE);
-    snprintf(buf, sizeof buf, "SPECIAL ORDER %03d", yday);
+    if (clock) snprintf(buf, sizeof buf, "SPECIAL ORDER %03d", yday);
+    else snprintf(buf, sizeof buf, "SPECIAL ORDER ---");
     gfx_text(fb, EDGE_L + 38, py + 17, &FONT_SK8, FB_YELLOW, buf, GFX_LEFT);
     gfx_text(fb, EDGE_R - 10, py + 17, &FONT_SK8, FB_WHITE, c->company, GFX_RIGHT);
     char order[200], lines[4][128];
-    crew_order(c, yday, order, sizeof order);
+    if (clock) crew_order(c, yday, order, sizeof order);
+    else snprintf(order, sizeof order, "SHIP'S CLOCK NOT SET. SPECIAL ORDERS RESUME AFTER THE NEXT SUCCESSFUL WI-FI FETCH. STAND BY.");
     int nl = gfx_wrap(&FONT_JR19, order, EDGE_R - EDGE_L - 20, lines, 4);
     // Centred in the space under the title row.
     int ty = py + 30 + (ph - 30 - nl * 18) / 2 + 13;
     for (int i = 0; i < nl; i++) gfx_text(fb, EDGE_L + 10, ty + i * 18, &FONT_JR19, FB_WHITE, lines[i], GFX_LEFT);
 
-    if (sleeping) snprintf(buf, sizeof buf, "ABOARD %d  HYPERSLEEP %d", aboard, sleeping);
+    if (!clock) snprintf(buf, sizeof buf, "CREW %d  CLOCK NOT SET", n);
+    else if (sleeping) snprintf(buf, sizeof buf, "ABOARD %d  HYPERSLEEP %d", aboard, sleeping);
     else snprintf(buf, sizeof buf, "ABOARD %d  AWAY %d", aboard, away);
     footer(fb, ctx, buf);
 }

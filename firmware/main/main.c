@@ -431,8 +431,11 @@ void app_main(void) {
     int64_t now = time(NULL);
     int64_t ms = esp_timer_get_time() / 1000;
     // A timer wake can land a moment before the scheduled second; 20 s of slack
-    // avoids a second wake just to fetch.
-    bool fetch = cause == WAKE_RESET || s_wx.count == 0 || !sched_time_valid(now) || now >= s_next_fetch - 20;
+    // avoids a second wake just to fetch. After a failure the retry time holds
+    // even with no forecast or clock yet (the unset clock still counts up
+    // through sleep), so presses away from known Wi-Fi don't each wait out a
+    // join timeout.
+    bool fetch = cause == WAKE_RESET || now >= s_next_fetch - 20;
     // The RTC runs a few seconds an hour fast, so an alert wake can come early.
     bool redraw = cause == WAKE_RESET || (cause == WAKE_TIMER && s_alert_at && now >= s_alert_at - 120 && s_shown == 3);
     int pending = cause == WAKE_BUTTON ? 1 : 0;
