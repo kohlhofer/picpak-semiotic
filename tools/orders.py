@@ -4,7 +4,7 @@ usage: python3 tools/orders.py
 
 One order per line as NNN|TEXT, days 001 to 366 in order. Text is uppercase
 ASCII that the bitmap fonts carry, 60 to 130 characters, and may use the
-tokens {DOG}, {SHIP} and {CO}, which the firmware fills in from crew_config.h.
+tokens {DOG}, {SHIP} and {CO}, which the firmware fills in from config.h.
 """
 import pathlib
 import re

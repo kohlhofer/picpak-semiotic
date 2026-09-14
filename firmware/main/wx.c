@@ -1,6 +1,8 @@
 #include "wx.h"
 #include "cJSON.h"
 
+#include <stdio.h>
+
 // Placard priority when severities tie.
 static const cond_t PRIORITY[] = {
     COND_ELEC, COND_PRECIP, COND_WIND, COND_HEAT, COND_CRYO, COND_RAD,
@@ -123,4 +125,15 @@ bool wx_parse(const char *json, size_t len, wx_t *out) {
     }
     cJSON_Delete(root);
     return ok;
+}
+
+int wx_url(char *buf, size_t cap, double lat, double lon) {
+    int n = snprintf(buf, cap,
+                     "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f"
+                     "&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,"
+                     "precipitation_probability,precipitation,weather_code,wind_gusts_10m,uv_index,visibility,pressure_msl"
+                     "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
+                     "&timezone=auto&forecast_hours=13&timeformat=unixtime",
+                     lat, lon);
+    return n >= 0 && (size_t)n < cap ? n : -1;
 }

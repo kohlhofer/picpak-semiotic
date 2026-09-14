@@ -1,5 +1,5 @@
 // PicPak firmware: modes stepped with the one button. Mode 1 is the
-// environmental panel for Cary, NC; mode 2 is System Updates (BBC World headlines);
+// environmental panel for the configured place; mode 2 is System Updates (RSS headlines);
 // mode 3 is System Status, the board reporting on itself; mode 4 is Orbital
 // Tracking (ISS passes and the nearest asteroid); mode 5 is the Crew Manifest.
 //
@@ -13,6 +13,7 @@
 //   - Button held 3 s: maintenance mode, which keeps USB up for flashing.
 // The forecast, the mode on screen and a short wake log live in RTC memory.
 #include "app.h"
+#include "app_config.h"
 #include "batt.h"
 #include "board.h"
 #include "epd.h"
@@ -27,12 +28,6 @@
 #include "status.h"
 #include "wake.h"
 #include "wx.h"
-
-#if __has_include("crew_config.h")
-#include "crew_config.h"
-#else
-#include "crew_config.example.h"
-#endif
 
 #include <ctype.h>
 #include <string.h>
@@ -88,11 +83,11 @@ RTC_DATA_ATTR static uint32_t s_trend_count;
 RTC_DATA_ATTR static orbit_t s_orbit;
 RTC_DATA_ATTR static int64_t s_alert_at;
 
-static const site_t SITE = { 35.7915, -78.7811, 0.154 };   // Cary, NC, as in WX_URL
+static const site_t SITE = { PLACE_LAT, PLACE_LON, PLACE_ELEV_M / 1000.0 };
 static const crew_t CREW = CREW_CONFIG;
 
 static uint8_t s_fb[FB_BYTES];
-static char s_body[49152];   // the BBC World feed is about 24 KB and grows on busy days
+static char s_body[49152];   // responses up to 48 KB; the default BBC World feed is about 24 KB
 static int s_batt_mv = -1;
 static wake_t s_wake;
 static bool s_imu_ok;
@@ -201,7 +196,9 @@ static void do_fetch(void) {
     int64_t date = 0;
     // One Wi-Fi session for the forecast, the headlines and the orbit data;
     // fetch_orbit turns the radio off before its long calculation.
-    esp_err_t err = net_fetch(WX_URL, s_body, sizeof s_body, &len, &date);
+    char url[512];
+    wx_url(url, sizeof url, PLACE_LAT, PLACE_LON);
+    esp_err_t err = net_fetch(url, s_body, sizeof s_body, &len, &date);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "fetch failed: %s", esp_err_to_name(err));
         s_fetch_result = FETCH_NET_FAILED;
@@ -302,7 +299,8 @@ static void read_status(status_t *st) {
 }
 
 static void do_draw(uint8_t mode) {
-    screen_ctx_t ctx = { .mode = mode, .modes = MODES, .batt_pct = batt_pct(s_batt_mv), .sync_utc = s_sync_utc };
+    screen_ctx_t ctx = { .mode = mode, .modes = MODES, .batt_pct = batt_pct(s_batt_mv), .sync_utc = s_sync_utc,
+                         .place = PLACE_NAME, .feed = NEWS_LABEL };
     if (mode == 0) screen_env(s_fb, &s_wx, &ctx);
     else if (mode == 1) screen_news(s_fb, &s_news, (int64_t)time(NULL), s_wx.utc_offset, &ctx);
     else if (mode == 2) {
@@ -448,6 +446,7 @@ void app_main(void) {
     s_fetch_result = FETCH_NONE;
     uint8_t fetched = FETCH_NONE;
     ESP_LOGI(TAG, "wake: %s, mode %d on screen, fetch %s", wake_name(cause), s_shown + 1, fetch ? "due" : "not due");
+    if (strcmp(WIFI_SSID, "your-network") == 0) ESP_LOGE(TAG, "config.h still has the example Wi-Fi network; nothing will be fetched");
     if (pending) { led_set(true); led_off_at = ms + 60; }
 
     for (;;) {

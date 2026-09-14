@@ -122,8 +122,30 @@ static void test_ordering_and_spread(void) {
     CHECK(f[0].cond == COND_ELEC);
 }
 
+static void test_url(const char *greenwich) {
+    char url[512];
+    CHECK(wx_url(url, sizeof url, 51.4779, -0.0015) > 0);
+    CHECK(strstr(url, "latitude=51.4779&longitude=-0.0015") != NULL);
+    CHECK(strstr(url, "&timezone=auto&") != NULL && strstr(url, "temperature_unit=fahrenheit") != NULL);
+    CHECK(wx_url(url, sizeof url, -33.8688, 151.2093) > 0 && strstr(url, "latitude=-33.8688&longitude=151.2093") != NULL);
+    char small[64];
+    CHECK(wx_url(small, sizeof small, 1, 2) < 0);
+
+    // A response for that request: the time zone comes back from the coordinates.
+    FILE *f = fopen(greenwich, "rb");
+    CHECK(f != NULL);
+    if (!f) return;
+    static char buf[16384];
+    size_t len = fread(buf, 1, sizeof buf, f);
+    fclose(f);
+    static wx_t w;
+    CHECK(wx_parse(buf, len, &w));
+    CHECK(w.utc_offset == 3600 && w.count == WX_HOURS);   // British Summer Time
+}
+
 int main(int argc, char **argv) {
     test_fixture(argc > 1 ? argv[1] : "test/fixtures/open-meteo-cary-2026-09-13.json");
+    test_url(argc > 2 ? argv[2] : "test/fixtures/open-meteo-greenwich-2026-09-14.json");
     test_bad_json();
     test_thresholds();
     test_ordering_and_spread();

@@ -1,29 +1,56 @@
 SHELL    := /bin/bash
 IDF_PATH ?= $(HOME)/esp/esp-idf-v5.5.5
-PORT     ?= $(firstword $(wildcard /dev/cu.usbmodem*))
+UNAME    := $(shell uname -s)
+# The C3's native USB shows up as a CDC-ACM port.
+PORT_GLOB ?= $(if $(filter Darwin,$(UNAME)),/dev/cu.usbmodem*,/dev/ttyACM*)
+PORT     ?= $(firstword $(wildcard $(PORT_GLOB)))
 DURATION ?= 30
+WAIT     ?= 15
 
-# Homebrew's default python3 is newer than ESP-IDF 5.5 supports; use the IDF venv.
-IDF_ENV := export PATH="$(HOME)/.espressif/python_env/idf5.5_py3.13_env/bin:$$PATH" \
-	IDF_PATH="$(IDF_PATH)" && source "$(IDF_PATH)/export.sh" >/dev/null
+# ESP-IDF 5.5 wants Python 3.9 to 3.13. A newer system python3 (Homebrew's
+# 3.14, say) breaks export.sh, so put the IDF's own environment first when the
+# installer made one.
+IDF_PY_ENV ?= $(lastword $(sort $(wildcard $(HOME)/.espressif/python_env/idf5.5_py*_env)))
+IDF_ENV := $(if $(IDF_PY_ENV),export PATH="$(IDF_PY_ENV)/bin:$$PATH" &&) export IDF_PATH="$(IDF_PATH)" PORT_GLOB='$(PORT_GLOB)' \
+	&& source "$(IDF_PATH)/export.sh" >/dev/null
 IDF     := $(IDF_ENV) && idf.py -C firmware
 
-.PHONY: build flash monitor log test assets orders preview restore clean port
+.PHONY: config build flash board-info backup restore log monitor test preview screenshots assets orders clean idf-check port
 
-build:
+# Start your settings from the example. Never overwrites an existing config.h.
+config:
+	@if [ -e firmware/main/config.h ]; then echo "firmware/main/config.h already exists; edit it."; \
+	else cp firmware/main/config.example.h firmware/main/config.h && echo "Created firmware/main/config.h: set your Wi-Fi and location in it."; fi
+
+build: idf-check
+	@test -e firmware/main/config.h || { echo "No firmware/main/config.h yet. Run 'make config' and edit it."; exit 1; }
 	$(IDF) build
 
-flash: build port
-	$(IDF) -p $(PORT) flash
+# Build, then flash as soon as the board is awake: plugged in with the button
+# held (stock firmware), on its own next wake, or in maintenance mode.
+flash: build
+	$(IDF_ENV) && python tools/flash_on_wake.py $(WAIT)
 
-# Interactive console; needs a real terminal. Ctrl-] quits.
-monitor: port
+# Chip, flash and eFuse summary. Reads nothing else and writes nothing.
+board-info: idf-check
+	$(IDF_ENV) && python tools/backup.py --info --minutes $(WAIT)
+
+# Two full reads of the lower 16 MB into backup/, compared. About 20 minutes.
+backup: idf-check
+	$(IDF_ENV) && python tools/backup.py --minutes $(WAIT)
+
+# Put this unit's own stock backup back. Untested end to end; see the README.
+restore: idf-check
+	$(IDF_ENV) && python tools/restore.py backup/stock_16mb_1.bin
+
+# Print the console for DURATION seconds without resetting the board, following
+# it through deep sleep, with host timestamps.
+log: idf-check
+	$(IDF_ENV) && python tools/log.py '$(PORT_GLOB)' $(DURATION)
+
+# Interactive console; needs a real terminal and an awake board. Ctrl-] quits.
+monitor: idf-check port
 	$(IDF) -p $(PORT) monitor
-
-# Print the console for DURATION seconds without resetting the board. Follows
-# it through deep sleep and timestamps every line.
-log:
-	$(IDF_ENV) && python tools/log.py '/dev/cu.usbmodem*' $(DURATION)
 
 CJSON   := $(IDF_PATH)/components/json/cJSON
 HOST_CC := cc -std=gnu11 -Wall -Wextra -Werror -Ifirmware/main -I$(CJSON)
@@ -32,8 +59,12 @@ WX      := firmware/main/wx.c $(CJSON)/cJSON.c
 FIXTURE := test/fixtures/open-meteo-cary-2026-09-13.json
 ORBIT   := firmware/main/sgp4.c firmware/main/sky.c firmware/main/pass.c firmware/main/orbit.c
 CREW    := firmware/main/crew.c firmware/main/orders_gen.c
+PREVIEW_SRC := $(SCREEN) $(WX) firmware/main/news.c firmware/main/sched.c firmware/main/status.c firmware/main/batt.c \
+	$(ORBIT) $(CREW) firmware/main/screen.c tools/preview.c
 
+# Host tests. Needs a C compiler and the ESP-IDF checkout (for cJSON), not the board.
 test:
+	@test -d "$(CJSON)" || { echo "No cJSON at $(CJSON). Set IDF_PATH to your ESP-IDF checkout."; exit 1; }
 	@mkdir -p build
 	$(HOST_CC) firmware/main/fb.c test/test_fb.c -o build/test_fb
 	$(HOST_CC) firmware/main/wake.c test/test_wake.c -o build/test_wake
@@ -46,7 +77,7 @@ test:
 	$(HOST_CC) $(CREW) $(SCREEN) test/test_crew.c -o build/test_crew
 	./build/test_fb
 	./build/test_wake
-	./build/test_wx $(FIXTURE)
+	./build/test_wx $(FIXTURE) test/fixtures/open-meteo-greenwich-2026-09-14.json
 	./build/test_gfx
 	./build/test_sched_batt
 	./build/test_news test/fixtures/npr-news-2026-09-13.xml test/fixtures/bbc-world-2026-09-14.xml
@@ -54,7 +85,34 @@ test:
 	./build/test_orbit test/fixtures/celestrak-iss-2026-09-13.tle
 	./build/test_crew
 
-# Redraw the placard and font bitmaps from tools/assets/rasterize.html.
+# Render one screen on your computer to build/preview.png with live weather and
+# headlines for the place and feed in config.h (config.example.h if you have no
+# config.h yet). MODE: 1 weather, 2 headlines, 3 status, 4 orbital, 5 crew.
+# FORECAST=file and NEWS=file use saved responses instead; PREVIEW_NOW=unix
+# seconds renders at another time.
+MODE ?= 1
+preview:
+	@mkdir -p build
+	$(HOST_CC) $(PREVIEW_SRC) -lm -o build/preview
+	@if [ -z "$(FORECAST)" ]; then curl -sf "$$(./build/preview --urls | sed -n 1p)" -o build/forecast.json; fi
+	@if [ -z "$(NEWS)" ]; then curl -sfL "$$(./build/preview --urls | sed -n 2p)" -o build/news.xml; fi
+	./build/preview $(or $(FORECAST),build/forecast.json) $(or $(NEWS),build/news.xml) build/preview.ppm $(MODE)
+	python3 tools/ppm2png.py build/preview.ppm build/preview.png 2
+	@echo "wrote build/preview.png"
+
+# The README's screenshots, from the example settings and saved responses.
+SHOT_NOW := 1789410600
+screenshots:
+	@mkdir -p build docs
+	$(HOST_CC) -DPREVIEW_EXAMPLE $(PREVIEW_SRC) -lm -o build/preview-example
+	@for m in 1 2 3 4 5; do \
+		PREVIEW_NOW=$(SHOT_NOW) ./build/preview-example test/fixtures/open-meteo-greenwich-2026-09-14.json \
+			test/fixtures/bbc-world-2026-09-14.xml build/shot.ppm $$m >/dev/null && \
+		python3 tools/ppm2png.py build/shot.ppm docs/mode-$$m.png 2 || exit 1; \
+	done
+	@echo "wrote docs/mode-1.png to docs/mode-5.png"
+
+# Redraw the placard and font bitmaps from tools/assets/rasterize.html (needs Google Chrome).
 assets:
 	python3 tools/assets/build_assets.py
 
@@ -62,27 +120,11 @@ assets:
 orders:
 	python3 tools/orders.py
 
-# Render a screen from live Cary weather and BBC World headlines to build/preview.png.
-# FORECAST=path and NEWS=path render saved responses instead. MODE picks the
-# screen: 1 environmental panel, 2 System Updates, 3 System Status, 4 Orbital
-# Tracking, 5 Crew Manifest.
-MODE ?= 1
-preview:
-	@mkdir -p build
-	$(HOST_CC) $(SCREEN) $(WX) firmware/main/news.c firmware/main/sched.c firmware/main/status.c firmware/main/batt.c $(ORBIT) $(CREW) firmware/main/screen.c tools/preview.c -lm -o build/preview
-	@if [ -z "$(FORECAST)" ]; then curl -sf "$$(sed -n 's/.*WX_URL "\(.*\)" \\/\1/p;s/^ *"\(.*\)" \\$$/\1/p;s/^ *"\(.*\)"$$/\1/p' firmware/main/wx.h | tr -d '\n')" -o build/forecast.json; fi
-	@if [ -z "$(NEWS)" ]; then curl -sf "$$(sed -n 's/.*NEWS_URL *"\(.*\)"/\1/p' firmware/main/news.h)" -o build/news.xml; fi
-	./build/preview $(or $(FORECAST),build/forecast.json) $(or $(NEWS),build/news.xml) build/preview.ppm $(MODE)
-	python3 tools/ppm2png.py build/preview.ppm build/preview.png 2
-	@echo "wrote build/preview.png"
-
-# Put this unit's stock firmware back. Takes 5-10 minutes, starting with a
-# silent erase that looks stuck. ROM loader only: the stub corrupts big writes here.
-restore: port
-	$(IDF_ENV) && esptool.py --chip esp32c3 -p $(PORT) --no-stub write_flash --flash_size 16MB 0x0 backup/stock_16mb_1.bin
-
 clean:
 	rm -rf build firmware/build firmware/sdkconfig firmware/sdkconfig.old
 
+idf-check:
+	@test -e "$(IDF_PATH)/export.sh" || { echo "No ESP-IDF at $(IDF_PATH). Install v5.5 (see README) or run make with IDF_PATH=/path/to/esp-idf."; exit 1; }
+
 port:
-	@test -n "$(PORT)" || { echo "No /dev/cu.usbmodem* port. Plug the PicPak in with a data cable; hold the button if it is asleep."; exit 1; }
+	@test -n "$(PORT)" || { echo "No $(PORT_GLOB) port. Plug the PicPak in with a data cable and hold its button so it stays awake."; exit 1; }

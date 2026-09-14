@@ -4,9 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// BBC News World: plainer headlines than NPR's top stories, which ran to
-// features and teasers (switched 2026-09-14). About 24 KB, in editorial order.
-#define NEWS_URL   "https://feeds.bbci.co.uk/news/world/rss.xml"
 #define NEWS_MAX   8
 #define NEWS_TITLE 120   // bytes including the terminator
 

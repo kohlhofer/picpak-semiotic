@@ -8,11 +8,14 @@ firmware/sdkconfig.old
 firmware/managed_components/
 firmware/dependencies.lock
 
-# Wi-Fi credentials for the firmware.
+# Your settings: Wi-Fi password, location and crew names. Copy config.example.h.
+firmware/main/config.h
+# Settings files from before config.h existed.
 firmware/main/secrets.h
+firmware/main/crew_config.h
 
 # clangd index
 firmware/.cache/
 
-# Real crew names for the Crew Manifest.
-firmware/main/crew_config.h
+# Python bytecode from the tools
+__pycache__/

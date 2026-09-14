@@ -12,6 +12,8 @@ typedef struct {
     int modes;          // how many modes exist
     int batt_pct;       // -1 when unknown
     int64_t sync_utc;   // when the forecast was fetched, 0 when never
+    const char *place;  // PLACE_NAME, for headers
+    const char *feed;   // NEWS_LABEL, for the headlines header
 } screen_ctx_t;
 
 // Mode 1: the environmental panel.

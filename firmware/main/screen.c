@@ -28,11 +28,16 @@ static const char *NAME[COND_COUNT] = {
 static const char *DAY[7] = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
 static const char *MON[12] = { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
 
-#define LOCATION "CARY NC"
 
 static void local_tm(int64_t utc, int32_t offset, struct tm *out) {
     time_t t = (time_t)(utc + offset);
     gmtime_r(&t, out);
+}
+
+// The small pixel fonts carry capitals only.
+static void upper(char *s) {
+    for (; *s; s++)
+        if (*s >= 'a' && *s <= 'z') *s = (char)(*s - 'a' + 'A');
 }
 
 static void deg(char *buf, size_t n, float f) { snprintf(buf, n, "%ld\260", lround(f)); }
@@ -94,7 +99,8 @@ void screen_env(uint8_t *fb, const wx_t *w, const screen_ctx_t *ctx) {
     if (w->count) {
         struct tm t;
         local_tm(w->h[0].time, w->utc_offset, &t);
-        snprintf(buf, sizeof buf, LOCATION "  %s %d %s  %02d:00", DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon], t.tm_hour);
+        snprintf(buf, sizeof buf, "%s  %s %d %s  %02d:00", ctx->place ? ctx->place : "", DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon], t.tm_hour);
+        upper(buf);
     }
     header(fb, "ATMOSPHERIC CONDITIONS", buf);
 
@@ -186,11 +192,13 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
     int nl[NEWS_MAX];
     fb_fill(fb, FB_WHITE);
 
-    snprintf(buf, sizeof buf, "BBC WORLD");
+    snprintf(buf, sizeof buf, "%s", ctx->feed ? ctx->feed : "HEADLINES");
+    upper(buf);
     if (ctx->sync_utc) {
         struct tm t;
         local_tm(ctx->sync_utc, utc_offset, &t);
-        snprintf(buf, sizeof buf, "BBC WORLD  %02d:%02d", t.tm_hour, t.tm_min);
+        snprintf(buf, sizeof buf, "%s  %02d:%02d", ctx->feed ? ctx->feed : "HEADLINES", t.tm_hour, t.tm_min);
+        upper(buf);
     }
     header(fb, "SYSTEM UPDATES", buf);
 
@@ -333,7 +341,10 @@ void screen_orbit(uint8_t *fb, const orbit_t *o, const site_t *site, int64_t now
     // After a reset the clock stays unset until a fetch reads a server's Date.
     bool clock = sched_time_valid(now);
     hhmm(tbuf, sizeof tbuf, now, off);
-    snprintf(buf, sizeof buf, clock ? "CARY %.1fN %.1fW  %s" : "CARY %.1fN %.1fW", site->lat, -site->lon, tbuf);
+    snprintf(buf, sizeof buf, "%s %.1f%c %.1f%c", ctx->place ? ctx->place : "", fabs(site->lat), site->lat < 0 ? 'S' : 'N',
+             fabs(site->lon), site->lon < 0 ? 'W' : 'E');
+    if (clock) snprintf(buf + strlen(buf), sizeof buf - strlen(buf), "  %s", tbuf);
+    upper(buf);
     header(fb, "ORBITAL TRACKING", buf);
     const int top = BAND_H + 7;
 
@@ -522,6 +533,7 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
     bool clock = sched_time_valid(now);   // no schedule or order without it
     if (clock) snprintf(buf, sizeof buf, "%s  %s %02d %s  %02d:%02d", c->ship, DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon], t.tm_hour, t.tm_min);
     else snprintf(buf, sizeof buf, "%s", c->ship);
+    upper(buf);
     header(fb, "CREW MANIFEST", buf);
     const int top = BAND_H + 7, bottom = EDGE_B - 21;
 
@@ -543,9 +555,11 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
         int px = PICTO_PX[m->figure];
         gfx_sprite(fb, x + (cw - px) / 2, y + 18, asset_picto(m->figure, 0, s.sev), px, px);
         snprintf(buf, sizeof buf, "%s", m->name);
+        upper(buf);
         gfx_fit(&FONT_JR19, buf, cw - 6);
         gfx_text(fb, x + cw / 2, y + 84, &FONT_JR19, FB_BLACK, buf, GFX_CENTER);
         snprintf(buf, sizeof buf, "%s", m->rank);
+        upper(buf);
         gfx_fit(&FONT_SK8, buf, cw - 6);
         gfx_text(fb, x + cw / 2, y + 97, &FONT_SK8, FB_BLACK, buf, GFX_CENTER);
         fb_color_t fill = s.kind == CREW_ASLEEP ? FB_BLACK : s.kind == CREW_AWAY ? FB_YELLOW : FB_WHITE;
@@ -553,6 +567,7 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
         gfx_rrect(fb, x + 4, wy, cw - 8, 15, 4, FB_BLACK);
         if (fill != FB_BLACK) gfx_rrect(fb, x + 5, wy + 1, cw - 10, 13, 3, fill);
         snprintf(buf, sizeof buf, "%s", s.word);
+        upper(buf);
         gfx_fit(&FONT_SK8, buf, cw - 12);
         gfx_text(fb, x + cw / 2, wy + 11, &FONT_SK8, fill == FB_BLACK ? FB_WHITE : FB_BLACK, buf, GFX_CENTER);
     }
@@ -564,10 +579,16 @@ void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const s
     if (clock) snprintf(buf, sizeof buf, "SPECIAL ORDER %03d", yday);
     else snprintf(buf, sizeof buf, "SPECIAL ORDER ---");
     gfx_text(fb, EDGE_L + 38, py + 17, &FONT_SK8, FB_YELLOW, buf, GFX_LEFT);
-    gfx_text(fb, EDGE_R - 10, py + 17, &FONT_SK8, FB_WHITE, c->company, GFX_RIGHT);
+    snprintf(buf, sizeof buf, "%s", c->company);
+    upper(buf);
+    gfx_text(fb, EDGE_R - 10, py + 17, &FONT_SK8, FB_WHITE, buf, GFX_RIGHT);
     char order[200], lines[4][128];
-    if (clock) crew_order(c, yday, order, sizeof order);
-    else snprintf(order, sizeof order, "SHIP'S CLOCK NOT SET. SPECIAL ORDERS RESUME AFTER THE NEXT SUCCESSFUL WI-FI FETCH. STAND BY.");
+    if (clock) {
+        crew_order(c, yday, order, sizeof order);
+        upper(order);
+    } else {
+        snprintf(order, sizeof order, "SHIP'S CLOCK NOT SET. SPECIAL ORDERS RESUME AFTER THE NEXT SUCCESSFUL WI-FI FETCH. STAND BY.");
+    }
     int nl = gfx_wrap(&FONT_JR19, order, EDGE_R - EDGE_L - 20, lines, 4);
     // Centred in the space under the title row.
     int ty = py + 30 + (ph - 30 - nl * 18) / 2 + 13;

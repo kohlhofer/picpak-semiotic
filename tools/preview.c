@@ -1,11 +1,13 @@
 // Render a PicPak screen on the Mac from saved or live feeds.
 //
 // usage: preview FORECAST.json NEWS.xml OUT.ppm [MODE]
+//        preview --urls    prints the weather and news URLs from the settings
 //
 // MODE is 1-based: 1 environmental panel, 2 System Updates, 3 System Status
 // (example device readings; PREVIEW_TROUBLE=1 shows warnings), 4 Orbital
 // Tracking (ORBIT_TLE and ORBIT_NEO name saved responses; defaults are the
-// test fixtures), 5 Crew Manifest (crew_config.h if present, else the example).
+// test fixtures), 5 Crew Manifest. Settings come from config.h, or from
+// config.example.h when it is missing or PREVIEW_EXAMPLE is defined.
 // PREVIEW_NOW=unix seconds renders at another time. Prints each hour's
 // conditions and each headline so the screen can be checked against the data.
 #include "fb.h"
@@ -13,14 +15,15 @@
 #include "screen.h"
 #include "wx.h"
 
-#if __has_include("crew_config.h")
-#include "crew_config.h"
+#if __has_include("config.h") && !defined(PREVIEW_EXAMPLE)
+#include "config.h"
 #else
-#include "crew_config.example.h"
+#include "config.example.h"
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 static const unsigned char DISP[4][3] = { { 35, 34, 31 }, { 228, 226, 216 }, { 220, 184, 0 }, { 179, 48, 31 } };
@@ -36,6 +39,12 @@ static size_t slurp(const char *path, char *buf, size_t cap) {
 }
 
 int main(int argc, char **argv) {
+    if (argc == 2 && strcmp(argv[1], "--urls") == 0) {
+        char url[512];
+        wx_url(url, sizeof url, PLACE_LAT, PLACE_LON);
+        printf("%s\n%s\n", url, NEWS_URL);
+        return 0;
+    }
     if (argc < 4) { fprintf(stderr, "usage: %s FORECAST.json NEWS.xml OUT.ppm [MODE]\n", argv[0]); return 2; }
     static char json[16384], xml[65536];
     size_t jlen = slurp(argv[1], json, sizeof json), xlen = slurp(argv[2], xml, sizeof xml);
@@ -58,7 +67,7 @@ int main(int argc, char **argv) {
         printf("n%d %4.1fh  %s\n", i, (now - news.item[i].published) / 3600.0, news.item[i].title);
 
     int mode = argc > 4 ? atoi(argv[4]) - 1 : 0;
-    screen_ctx_t ctx = { .mode = mode, .modes = 5, .batt_pct = 78, .sync_utc = now };
+    screen_ctx_t ctx = { .mode = mode, .modes = 5, .batt_pct = 78, .sync_utc = now, .place = PLACE_NAME, .feed = NEWS_LABEL };
     static uint8_t fb[FB_BYTES];
     if (mode == 0) screen_env(fb, &w, &ctx);
     else if (mode == 1) screen_news(fb, &news, now, w.utc_offset, &ctx);
@@ -71,7 +80,7 @@ int main(int argc, char **argv) {
                         .accel_ok = true, .accel_mg = { 40, -990, 170 } };
         snprintf(st.build, sizeof st.build, "6c747c2");
         if (getenv("PREVIEW_TROUBLE")) { st.batt_mv = 3590; st.trend_mv = -90; st.rssi = -86; st.fetch_failures = 3; st.wx_sync = now - 5 * 3600; }
-        screen_status(fb, &st, "PICPAK-3E44", "BUTTON", "USB", &ctx);
+        screen_status(fb, &st, "PICPAK-1A2B", "BUTTON", "USB", &ctx);
     }
     else if (mode == 3) {
         static orbit_t o;
@@ -84,7 +93,7 @@ int main(int argc, char **argv) {
         o.neo_ok = orbit_parse_neo(text, nlen, &o.neo);
         sgp4_t sat;
         sgp4_parse(o.l1, o.l2, &sat);
-        const site_t site = { 35.7915, -78.7811, 0.154 };
+        const site_t site = { PLACE_LAT, PLACE_LON, PLACE_ELEV_M / 1000.0 };
         o.count = (uint8_t)pass_find(&sat, &site, now, now + 3 * 86400, PASS_MIN_EL, true, o.pass, ORBIT_PASSES);
         for (int i = 0; i < o.count; i++)
             printf("pass %d rise %+.1fh %ds max %.1f %d>%d %s\n", i, (o.pass[i].rise - now) / 3600.0, (int)(o.pass[i].set - o.pass[i].rise),

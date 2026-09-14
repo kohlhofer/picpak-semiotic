@@ -1,6 +1,6 @@
 #include "net.h"
 #include "sched.h"
-#include "secrets.h"
+#include "app_config.h"
 
 #include <string.h>
 #include "esp_crt_bundle.h"

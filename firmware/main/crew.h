@@ -1,6 +1,6 @@
 // Crew Manifest: the household as a ship's crew. Status comes from the clock and
 // each member's schedule, duties rotate daily, and the Special Order is picked
-// by day of the year. Pure C; the real names live in crew_config.h.
+// by day of the year. Pure C; the crew itself is set in config.h.
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>

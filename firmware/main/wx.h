@@ -31,12 +31,10 @@ typedef struct {
 
 typedef struct { cond_t cond; sev_t sev; } wx_flag_t;
 
-// The request the board and the preview tool both send.
-#define WX_URL "https://api.open-meteo.com/v1/forecast?latitude=35.7915&longitude=-78.7811" \
-    "&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m," \
-    "precipitation_probability,precipitation,weather_code,wind_gusts_10m,uv_index,visibility,pressure_msl" \
-    "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch" \
-    "&timezone=America%2FNew_York&forecast_hours=13&timeformat=unixtime"
+// The Open-Meteo request for a place, as the board and the preview tool both
+// send it: imperial units, and the time zone the service finds for the
+// coordinates. Returns the length, or a negative number if it did not fit.
+int wx_url(char *buf, size_t cap, double lat, double lon);
 
 // Parse an Open-Meteo response. Returns false when a required field is
 // missing or empty; `out` is then undefined.
