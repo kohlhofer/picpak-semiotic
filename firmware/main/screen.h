@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Full-screen layouts. Pure C: the preview tool renders them on the Mac.
 #pragma once
 #include <stdint.h>

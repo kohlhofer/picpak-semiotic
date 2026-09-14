@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Write a PicPak's own stock backup back to it.
 
 usage (from the ESP-IDF environment): python tools/restore.py [backup/stock_16mb_1.bin]

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Satellite passes over a site: when it climbs above a minimum elevation, how
 // high it gets, where it rises and sets, and whether it can be seen (sunlit
 // while the sky at the site is dark). Pure C.

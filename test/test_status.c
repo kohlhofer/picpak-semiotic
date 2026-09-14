@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Host test for System Status readouts: formatting, severities and trend.
 #include "status.h"
 #include <stdio.h>

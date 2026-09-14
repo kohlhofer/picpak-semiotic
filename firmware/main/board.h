@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 varanu5 (https://github.com/varanu5/picpak-tesserae-client)
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // PicPak hardware map (ESP32-C3, hw rev v0.0.1).
 // Pins from varanu5/picpak-tesserae-client's reverse engineering; IMU model and
 // panel ID from strings in this unit's stock firmware (simplestick V0.3.2).

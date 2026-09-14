@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Battery percentage from the cell voltage. Pure C.
 #pragma once
 

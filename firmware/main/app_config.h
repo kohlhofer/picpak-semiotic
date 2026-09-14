@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // The user's settings from config.h, with defaults for the optional ones. A
 // missing config.h stops the build rather than flashing a board that can never
 // join Wi-Fi.

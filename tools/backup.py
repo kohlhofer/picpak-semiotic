@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Back up a PicPak's flash before replacing its firmware, or show what chip it is.
 
 usage (from the ESP-IDF environment):

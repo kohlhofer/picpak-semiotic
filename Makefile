@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 SHELL    := /bin/bash
 IDF_PATH ?= $(HOME)/esp/esp-idf-v5.5.5
 UNAME    := $(shell uname -s)

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Convert a binary PPM (P6) to PNG with the standard library only.
 
 usage: ppm2png.py IN.ppm OUT.png [SCALE]

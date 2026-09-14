@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Environmental conditions, in the order the placard assets are generated.
 // Changing the order means regenerating assets_gen.c.
 #pragma once

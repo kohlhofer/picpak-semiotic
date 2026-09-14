@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Host test for wake-cause priority. Run with `make test`.
 #include "board.h"
 #include "wake.h"

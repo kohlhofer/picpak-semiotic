@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Flash the PicPak firmware, catching the board whenever it is awake.
 
 usage (from the ESP-IDF environment): python tools/flash_on_wake.py [MINUTES]

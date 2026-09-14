@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 CONFIG_IDF_TARGET="esp32c3"
 
 # Matches the stock image header: DIO, 80 MHz, 16 MB. The flash chip reports

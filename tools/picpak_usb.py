@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Finding the PicPak on USB and getting it into the ESP32-C3's ROM loader.
 
 The board sleeps most of the time, and its USB port only exists while it is

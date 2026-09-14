@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Host test for SGP4, the pass finder, and the Sun and Moon, against Skyfield
 // (python-sgp4 and the JPL DE421 ephemeris) for the ISS over Cary.
 //

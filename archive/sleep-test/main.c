@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // PicPak sleep and wake test.
 //
 // The board spends its time in deep sleep and wakes on:

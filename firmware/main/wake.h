@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Wake-cause classification. Pure C so the priority rules are host-tested.
 #pragma once
 #include <stdbool.h>

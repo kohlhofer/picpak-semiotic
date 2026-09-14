@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Headlines for System Updates, read from an RSS feed. Pure C.
 #pragma once
 #include <stdbool.h>

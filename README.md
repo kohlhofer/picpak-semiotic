@@ -245,4 +245,4 @@ Pixels are 2 bits each, `0` black, `1` white, `2` yellow and `3` red, and the pa
 - **Test reference values** for orbits, sun and moon were generated with [Skyfield](https://rhodesmill.org/skyfield/), which is not part of the firmware.
 - *Alien*, Nostromo, MU/TH/UR and Weyland-Yutani belong to 20th Century Studios. This is an unofficial homage, not affiliated with or endorsed by them.
 
-This firmware is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
+Copyright © 2026 Field Bureau & Werkstatt LLC. Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE); source files carry SPDX notices, and the files built on varanu5's work credit that project too.

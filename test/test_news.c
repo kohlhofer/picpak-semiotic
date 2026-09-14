@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Host test for the RSS reader, text cleaning, date parsing and line wrapping.
 #include "gfx.h"
 #include "news.h"
