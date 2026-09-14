@@ -1,6 +1,6 @@
 # Semiotic
 
-Open firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3. The stock firmware is a Bluetooth photo frame driven from a phone app. This turns it into a small ship's console in the visual language of Ron Cobb's semiotic standard for *Alien*: five screens stepped through with the one button, Wi-Fi once an hour, deep sleep in between.
+Semiotic is a personal project: firmware I made for my own PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3, and shared as is for anyone else who owns one. The stock firmware is a Bluetooth photo frame driven from a phone app. This turns it into a small ship's console in the visual language of Ron Cobb's semiotic standard for *Alien*: five screens stepped through with the one button, Wi-Fi once an hour, deep sleep in between.
 
 > [!WARNING]
 > **Use at your own risk.** This firmware is provided "as is", without warranty of any kind, express or implied, including the warranties of merchantability, fitness for a particular purpose and non-infringement.
@@ -10,7 +10,7 @@ Open firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C
 > - **You are responsible for what you do with it.** In no event shall the authors or contributors be liable for any claim, damages or other liability, including a bricked device, lost data or a damaged battery, arising from the use of this software or the instructions in this README.
 > - **Feel free to modify it.** Fork it, change it and share it under the [GNU Affero General Public License v3.0 or later](LICENSE), whose sections 15 and 16 carry the full disclaimer of warranty and limitation of liability.
 >
-> Semiotic is an independent project, not affiliated with or endorsed by the maker of the PicPak.
+> Semiotic is a personal project, not affiliated with or endorsed by the maker of the PicPak.
 
 <table>
 <tr>
