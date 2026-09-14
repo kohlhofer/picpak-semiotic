@@ -2,35 +2,42 @@
 
 My own firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3. The stock firmware stays in `backup/` so I can always go back.
 
-Right now this is test firmware for sleep and wake. Both radios stay off. The board sleeps and wakes on:
+The frame has five modes, stepped through with its one button. Presses made during a refresh still count, so two quick presses move two modes on, and it wraps from the last back to the first. Everything is drawn in the visual language of Ron Cobb's semiotic standard for *Alien*: square hazard placards, crisp solid colours, readings framed as ship's instruments.
 
-| Wake | What happens |
+| Mode | What it shows |
 |---|---|
-| Button | LED lights while held, then the next test pattern draws (16 s) |
-| Double tap on the frame | 3 blinks, then the next pattern |
-| Motion | 2 blinks |
-| 60 s timer | Nothing visible |
-| Button held 3 s | 5 fast blinks, then awake mode: USB stays up, a short press steps patterns, a 2 s hold goes back to sleep |
+| 1 Environmental panel | Cary's weather for the next twelve hours as readings and hazard placards |
+| 2 System Updates | NPR headlines, each with an orbit placard that shows its age |
+| 3 System Status | The board itself: battery and its trend, feeds, Wi-Fi, chip temperature, storage, firmware, attitude |
+| 4 Orbital Tracking | The next visible ISS pass on a sky scope, the nearest asteroid this week, sunrise, sunset and moon phase |
+| 5 Crew Manifest | The household as a ship's crew, with status from a daily schedule, duty rotation and a daily Special Order |
 
-Every wake goes into a ring of 64 events in RTC memory and is printed once a USB host is attached, so a run on battery can be read back later.
+The board sleeps between wakes. It wakes hourly to fetch the forecast and headlines, and every six hours the ISS elements and asteroid data, then redraws whatever is on screen. With mode 4 showing it also wakes ten minutes before a visible pass and again just after. Holding the button 3 s enters maintenance mode, which keeps USB up for flashing.
 
-## Where It's Going
-
-The frame becomes a small set of modes, five or six at most, stepped through with the button. Presses made during a refresh still count, so two quick presses move two modes on and it wraps from the last back to the first. Mode one is an environmental panel: the next twelve hours of local weather, fetched hourly over Wi-Fi, shown as readings and square hazard placards in the visual language of Ron Cobb's semiotic standard for *Alien*.
+## Decisions
 
 Decided on 2026-09-13:
 
 | Decision | Choice |
 |---|---|
 | Forecast location | Cary, NC |
-| Units | Imperial (°F, mph, inches) with a 24-hour clock |
+| Units | Imperial (°F, mph, inches, miles) with a 24-hour clock |
 | Mode indicator | Numbers in the footer, the current one inverted |
 | Lookahead | Hours 1 to 6 as the main row, hours 7 to 12 as the small strip |
 | Weather source | Open-Meteo hourly forecast, no key, requested in °F, mph and inches (visibility comes back in feet) |
 | Placard frame | Rounded corners |
 | Placards | A for everything except thermal high (B, rising chevrons), precipitation (B, three drops) and visibility (B, veiled beacon) |
+| Headlines | NPR's top stories RSS, list layout |
+| System Status | Console layout; clock drift and counters left off |
+| Orbital Tracking | Sky scope layout; visible passes only; sun and moon on. ISS elements from CelesTrak with SGP4 on the board, asteroids from JPL's close-approach API, both without keys |
+| Crew Manifest | Roster layout, duty rotation and hypersleep on, 366 Special Orders compiled in. Names and schedules live in the git-ignored `crew_config.h` |
+| Fonts | Pixel fonts at their native grid (Jersey 10, Silkscreen) wherever text is small; Big Shoulders only for large numerals |
 
-Design reviews so far: the screen layout ([artifact](https://claude.ai/code/artifact/479ad10c-99f9-4e4b-addf-b098153fff5f)) and placard alternatives ([artifact](https://claude.ai/code/artifact/945aba5d-2429-48dc-9f4d-5d63adb6f045), picks saved on the page).
+Design reviews, with picks saved on each page: the environmental panel ([artifact](https://claude.ai/code/artifact/479ad10c-99f9-4e4b-addf-b098153fff5f)), placard alternatives ([artifact](https://claude.ai/code/artifact/945aba5d-2429-48dc-9f4d-5d63adb6f045)), System Updates ([artifact](https://claude.ai/code/artifact/7efda3f7-670f-4974-b792-129e1f5e41de)), System Status ([artifact](https://claude.ai/code/artifact/cdabb0dd-f9cf-43c5-951b-29fe3d1f186e)), and Orbit and Crew ([artifact](https://claude.ai/code/artifact/418d9918-e4d0-401e-b55a-4e3cdb419b52)).
+
+## Setup
+
+`firmware/main/secrets.h` holds the Wi-Fi credentials and `firmware/main/crew_config.h` the crew; git ignores both. Copy `secrets.example.h` and `crew_config.example.h` to start. Without `crew_config.h` the build uses the example crew.
 
 ## Commands
 
@@ -38,12 +45,16 @@ Design reviews so far: the screen layout ([artifact](https://claude.ai/code/arti
 |---|---|
 | `make build` | Build with ESP-IDF v5.5.5 from `~/esp/esp-idf-v5.5.5` |
 | `make flash` | Build and flash over USB; the board must be awake |
+| `python tools/flash_on_wake.py 60` | Wait up to 60 minutes for the board to wake, then flash it (run from the IDF environment) |
 | `make log DURATION=30` | Print the console for 30 s without resetting the board, following it through sleep, with host timestamps |
 | `make monitor` | Interactive console, needs a real terminal |
-| `make test` | Host tests for the framebuffer and wake classification |
+| `make test` | Host tests: framebuffer, wake classification, forecast, drawing, scheduling, headlines, status, orbits against Skyfield, crew |
+| `make preview MODE=4` | Render a screen on the Mac to `build/preview.png`; `PREVIEW_NOW=` picks the time |
+| `make assets` | Redraw placards and fonts from `tools/assets/rasterize.html` into `assets_gen.c` |
+| `make orders` | Check `firmware/orders.txt` and regenerate `orders_gen.c` |
 | `make restore` | Write this unit's stock backup back, 5 to 10 minutes |
 
-The USB port only exists while the chip is awake. To flash, hold the button 3 s for awake mode first. If the running firmware cannot get there, run the flash in a loop that waits for `/dev/cu.usbmodem*` and hold the button: the board stays awake until you let go.
+The USB port only exists while the chip is awake. To flash, hold the button 3 s for maintenance mode, or leave `flash_on_wake.py` waiting for the next wake.
 
 ## Hardware
 
