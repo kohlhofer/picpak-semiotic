@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS "main.c" "maint.c" "wake.c" "fb.c" "epd.c" "imu.c" "keypin.c"
          "wx.c" "gfx.c" "screen.c" "assets_gen.c" "net.c" "sched.c" "batt.c" "news.c" "status.c"
+         "sgp4.c" "sky.c" "pass.c" "orbit.c" "crew.c" "orders_gen.c"
     INCLUDE_DIRS ".")
 
 # Readouts are cut to the width of their field on purpose; snprintf truncation

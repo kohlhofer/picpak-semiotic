@@ -1,12 +1,15 @@
 // PicPak firmware: modes stepped with the one button. Mode 1 is the
 // environmental panel for Cary, NC; mode 2 is System Updates (NPR headlines);
-// mode 3 is System Status, the board reporting on itself.
+// mode 3 is System Status, the board reporting on itself; mode 4 is Orbital
+// Tracking (ISS passes and the nearest asteroid); mode 5 is the Crew Manifest.
 //
 // The board lives in deep sleep and wakes on the button or the hourly timer.
 //   - Button: every press moves the target mode on, wrapping after the last.
 //     Drawing starts 1.2 s after the last press. Presses during a refresh
 //     count, and the panel draws wherever the count got to once it is free.
-//   - Timer: fetch the forecast and headlines; redraw if mode 1, 2 or 3 is on screen.
+//   - Timer: fetch the forecast and headlines (and every 6 h the orbit data),
+//     then redraw whatever is on screen. With mode 4 showing, also wake ten
+//     minutes before a visible ISS pass and again just after it.
 //   - Button held 3 s: maintenance mode, which keeps USB up for flashing.
 // The forecast, the mode on screen and a short wake log live in RTC memory.
 #include "app.h"
@@ -18,11 +21,18 @@
 #include "keypin.h"
 #include "net.h"
 #include "news.h"
+#include "orbit.h"
 #include "sched.h"
 #include "screen.h"
 #include "status.h"
 #include "wake.h"
 #include "wx.h"
+
+#if __has_include("crew_config.h")
+#include "crew_config.h"
+#else
+#include "crew_config.example.h"
+#endif
 
 #include <ctype.h>
 #include <string.h>
@@ -74,6 +84,12 @@ RTC_DATA_ATTR static int s_rssi, s_link_ms;
 RTC_DATA_ATTR static uint32_t s_app_bytes, s_app_part_bytes;
 RTC_DATA_ATTR static batt_sample_t s_trend[STATUS_TREND_SAMPLES];
 RTC_DATA_ATTR static uint32_t s_trend_count;
+// For Orbital Tracking.
+RTC_DATA_ATTR static orbit_t s_orbit;
+RTC_DATA_ATTR static int64_t s_alert_at;
+
+static const site_t SITE = { 35.7915, -78.7811, 0.154 };   // Cary, NC, as in WX_URL
+static const crew_t CREW = CREW_CONFIG;
 
 static uint8_t s_fb[FB_BYTES];
 static char s_body[24576];   // the NPR feed is about 14 KB
@@ -126,6 +142,54 @@ static void note_flash(void) {
     nvs_close(h);
 }
 
+// ISS elements and the nearest asteroid every six hours, and the passes they
+// give. Each keeps its last good value when a fetch fails.
+static void fetch_orbit(int64_t now) {
+    size_t len = 0;
+    int64_t date = 0;
+    bool fresh_tle = false;
+    if (!s_orbit.l1[0] || now - s_orbit.tle_sync >= ORBIT_REFRESH_S) {
+        char l1[70], l2[70];
+        esp_err_t err = net_fetch(TLE_URL, s_body, sizeof s_body, &len, &date);
+        if (err != ESP_OK) ESP_LOGE(TAG, "elements fetch failed: %s", esp_err_to_name(err));
+        else if (!orbit_parse_tle(s_body, l1, l2)) ESP_LOGE(TAG, "no elements in %u bytes", (unsigned)len);
+        else {
+            memcpy(s_orbit.l1, l1, sizeof l1);
+            memcpy(s_orbit.l2, l2, sizeof l2);
+            s_orbit.tle_sync = now;
+            fresh_tle = true;
+        }
+    }
+    if (!s_orbit.neo_ok || now - s_orbit.neo_sync >= ORBIT_REFRESH_S || s_orbit.neo.approach < now) {
+        neo_t neo;
+        esp_err_t err = net_fetch(NEO_URL, s_body, sizeof s_body, &len, &date);
+        if (err != ESP_OK) ESP_LOGE(TAG, "close-approach fetch failed: %s", esp_err_to_name(err));
+        else if (!orbit_parse_neo(s_body, len, &neo)) ESP_LOGE(TAG, "close-approach data did not parse (%u bytes)", (unsigned)len);
+        else {
+            s_orbit.neo = neo;
+            s_orbit.neo_ok = true;
+            s_orbit.neo_sync = now;
+            ESP_LOGI(TAG, "nearest asteroid %s at %.4f AU", neo.des, neo.dist_au);
+        }
+    }
+    net_stop();
+
+    sgp4_t sat;
+    // Search again every six hours, or once the passes found have all gone by.
+    bool stale = !s_orbit.searched_at || now - s_orbit.searched_at >= ORBIT_REFRESH_S ||
+                 (s_orbit.count && !orbit_next_pass(&s_orbit, now));
+    if ((fresh_tle || stale) && s_orbit.l1[0] && sgp4_parse(s_orbit.l1, s_orbit.l2, &sat)) {
+        static pass_t found[ORBIT_PASSES];
+        int64_t t0 = esp_timer_get_time();
+        int n = pass_find(&sat, &SITE, now, now + 3 * 86400, PASS_MIN_EL, true, found, ORBIT_PASSES);
+        memcpy(s_orbit.pass, found, sizeof found);
+        s_orbit.count = (uint8_t)n;
+        s_orbit.searched_at = now;
+        ESP_LOGI(TAG, "%d visible passes, next in %llds, found in %lld ms", n, n ? found[0].rise - now : -1LL,
+                 (esp_timer_get_time() - t0) / 1000);
+    }
+}
+
 static void do_fetch(void) {
     int64_t started = esp_timer_get_time();
     size_t len = 0;
@@ -170,6 +234,7 @@ static void do_fetch(void) {
         s_link_ms = (int)((esp_timer_get_time() - started) / 1000);
         status_trend_add(s_trend, STATUS_TREND_SAMPLES, &s_trend_count, now, s_batt_mv);
         note_flash();
+        fetch_orbit(now);
     } else if (s_fetch_failures < 255) {
         s_fetch_failures++;
     }
@@ -244,7 +309,9 @@ static void do_draw(uint8_t mode) {
         strlcpy(wake, wake_name(s_wake), sizeof wake);
         for (char *c = wake; *c; c++) *c = (char)toupper((unsigned char)*c);
         screen_status(s_fb, &st, device, wake, reset_name(esp_reset_reason()), &ctx);
-    } else screen_placeholder(s_fb, &ctx);
+    } else if (mode == 3) screen_orbit(s_fb, &s_orbit, &SITE, (int64_t)time(NULL), s_wx.utc_offset, &ctx);
+    else if (mode == 4) screen_crew(s_fb, &CREW, (int64_t)time(NULL), s_wx.utc_offset, &ctx);
+    else screen_placeholder(s_fb, &ctx);
     ESP_LOGI(TAG, "drawing mode %d", mode + 1);
     esp_err_t err = epd_show(s_fb);
     if (err == ESP_OK) s_shown = mode;
@@ -305,7 +372,16 @@ static void print_events(void) {
 }
 
 static void sleep_now(void) {
-    int64_t secs = s_next_fetch - (int64_t)time(NULL);
+    int64_t now = time(NULL), wake_at = s_next_fetch;
+    s_alert_at = 0;
+    const pass_t *p = s_shown == 3 && sched_time_valid(now) ? orbit_next_pass(&s_orbit, now) : NULL;
+    if (p) {
+        // Ten minutes before a pass to show it as imminent, then just after it
+        // ends to move on to the next one.
+        int64_t t = now < p->rise - 720 ? p->rise - 600 : p->set + 60;
+        if (t > now + 30 && t < wake_at) wake_at = s_alert_at = t;
+    }
+    int64_t secs = wake_at - now;
     if (secs < 30) secs = 30;
     if (secs > 2 * 3600) secs = 2 * 3600;
     keypin_end();
@@ -351,7 +427,8 @@ void app_main(void) {
     // A timer wake can land a moment before the scheduled second; 20 s of slack
     // avoids a second wake just to fetch.
     bool fetch = cause == WAKE_RESET || s_wx.count == 0 || !sched_time_valid(now) || now >= s_next_fetch - 20;
-    bool redraw = cause == WAKE_RESET;
+    // The RTC runs a few seconds an hour fast, so an alert wake can come early.
+    bool redraw = cause == WAKE_RESET || (cause == WAKE_TIMER && s_alert_at && now >= s_alert_at - 120 && s_shown == 3);
     int pending = cause == WAKE_BUTTON ? 1 : 0;
     int presses = pending;
     int64_t last_input = pending ? ms : -SETTLE_MS;
@@ -388,7 +465,7 @@ void app_main(void) {
 
         if (was_busy && !s_busy && last_kind == JOB_FETCH) {
             fetched = s_fetch_result;
-            if (s_fetch_result == FETCH_OK && s_shown <= 2 && pending == 0) redraw = true;
+            if (s_fetch_result == FETCH_OK && pending == 0) redraw = true;
         }
         was_busy = s_busy;
 
@@ -396,7 +473,7 @@ void app_main(void) {
             bool settled = !b.stable && ms - last_input >= SETTLE_MS;
             if (pending && settled) {
                 uint8_t target = (uint8_t)((s_shown + pending) % MODES);
-                if (target <= 2 && fetch) {
+                if (fetch) {
                     fetch = false; last_kind = JOB_FETCH; run(JOB_FETCH, 0);
                 } else {
                     int fresh = keypin_battery_mv();

@@ -1,14 +1,21 @@
 #include "gfx.h"
 
+#include <math.h>
 #include <string.h>
 
-void gfx_sprite(uint8_t *fb, int x, int y, const uint8_t *px, int w, int h) {
+static void sprite(uint8_t *fb, int x, int y, const uint8_t *px, int w, int h, int key) {
     if (!px) return;
     for (int j = 0; j < h; j++)
         for (int i = 0; i < w; i++) {
-            int k = j * w + i;
-            fb_set(fb, x + i, y + j, (fb_color_t)((px[k >> 2] >> (6 - 2 * (k & 3))) & 3));
+            int k = j * w + i, c = (px[k >> 2] >> (6 - 2 * (k & 3))) & 3;
+            if (c != key) fb_set(fb, x + i, y + j, (fb_color_t)c);
         }
+}
+
+void gfx_sprite(uint8_t *fb, int x, int y, const uint8_t *px, int w, int h) { sprite(fb, x, y, px, w, h, -1); }
+
+void gfx_sprite_key(uint8_t *fb, int x, int y, const uint8_t *px, int w, int h, fb_color_t key) {
+    sprite(fb, x, y, px, w, h, (int)key);
 }
 
 void gfx_tile(uint8_t *fb, int x, int y, cond_t c, tile_size_t s, sev_t sev) {
@@ -128,4 +135,58 @@ int gfx_fit(const font_t *f, char *s, int width) {
 
 void gfx_dotted_vline(uint8_t *fb, int x, int y0, int y1, fb_color_t color) {
     for (int y = y0; y < y1; y += 2) fb_set(fb, x, y, color);
+}
+
+static void span(int *lo, int *hi, float a, float b, int max) {
+    *lo = (int)floor(a);
+    *hi = (int)ceil(b);
+    if (*lo < 0) *lo = 0;
+    if (*hi > max) *hi = max;
+}
+
+void gfx_disc(uint8_t *fb, float cx, float cy, float r, fb_color_t color) { gfx_ring(fb, cx, cy, r, r + 1, color); }
+
+void gfx_ring(uint8_t *fb, float cx, float cy, float r, float w, fb_color_t color) {
+    int x0, x1, y0, y1;
+    span(&x0, &x1, cx - r, cx + r, FB_W);
+    span(&y0, &y1, cy - r, cy + r, FB_H);
+    float in = r - w < 0 ? 0 : (r - w) * (r - w);
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++) {
+            float dx = x + 0.5f - cx, dy = y + 0.5f - cy, d = dx * dx + dy * dy;
+            if (d <= r * r && d >= in) fb_set(fb, x, y, color);
+        }
+}
+
+void gfx_line(uint8_t *fb, float ax, float ay, float bx, float by, float w, fb_color_t color) {
+    float h = w / 2;
+    int x0, x1, y0, y1;
+    span(&x0, &x1, fmin(ax, bx) - h, fmax(ax, bx) + h, FB_W);
+    span(&y0, &y1, fmin(ay, by) - h, fmax(ay, by) + h, FB_H);
+    float vx = bx - ax, vy = by - ay, len2 = vx * vx + vy * vy;
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++) {
+            float px = x + 0.5f - ax, py = y + 0.5f - ay;
+            float t = len2 > 0 ? (px * vx + py * vy) / len2 : 0;
+            if (t < 0) t = 0;
+            if (t > 1) t = 1;
+            float dx = px - t * vx, dy = py - t * vy;
+            if (dx * dx + dy * dy <= h * h) fb_set(fb, x, y, color);
+        }
+}
+
+void gfx_tri(uint8_t *fb, float ax, float ay, float bx, float by, float cx, float cy, fb_color_t color) {
+    int x0, x1, y0, y1;
+    span(&x0, &x1, fmin(ax, fmin(bx, cx)), fmax(ax, fmax(bx, cx)), FB_W);
+    span(&y0, &y1, fmin(ay, fmin(by, cy)), fmax(ay, fmax(by, cy)), FB_H);
+    float area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    if (area == 0) return;
+    for (int y = y0; y < y1; y++)
+        for (int x = x0; x < x1; x++) {
+            float px = x + 0.5f, py = y + 0.5f;
+            float e0 = ((bx - ax) * (py - ay) - (by - ay) * (px - ax)) / area;
+            float e1 = ((cx - bx) * (py - by) - (cy - by) * (px - bx)) / area;
+            float e2 = ((ax - cx) * (py - cy) - (ay - cy) * (px - cx)) / area;
+            if (e0 >= 0 && e1 >= 0 && e2 >= 0) fb_set(fb, x, y, color);
+        }
 }

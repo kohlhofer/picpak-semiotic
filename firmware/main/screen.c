@@ -1,9 +1,11 @@
 #include "screen.h"
 #include "batt.h"
 #include "gfx.h"
+#include "sgp4.h"
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 // Layouts follow the approved design pages, moved inside the case margins.
@@ -295,6 +297,260 @@ void screen_status(uint8_t *fb, const status_t *s, const char *device, const cha
     }
 
     snprintf(buf, sizeof buf, "WOKE %s  RST %s", wake, reset);
+    footer(fb, ctx, buf);
+}
+
+static int chip(uint8_t *fb, int x, int y, fb_color_t fill, fb_color_t ink, const char *text, gfx_align_t align) {
+    int w = gfx_text_width(&FONT_SK8, text) + 12, h = 14;
+    int x0 = align == GFX_RIGHT ? x - w : x;
+    gfx_rrect(fb, x0, y, w, h, 4, fill == FB_WHITE ? FB_BLACK : fill);
+    if (fill == FB_WHITE) gfx_rrect(fb, x0 + 1, y + 1, w - 2, h - 2, 3, FB_WHITE);
+    gfx_text(fb, x0 + 6, y + 11, &FONT_SK8, ink, text, GFX_LEFT);
+    return w;
+}
+
+static void thousands(char *buf, size_t n, long v) {
+    char raw[24];
+    snprintf(raw, sizeof raw, "%ld", v);
+    size_t len = strlen(raw), o = 0;
+    for (size_t i = 0; i < len && o + 1 < n; i++) {
+        if (i && (len - i) % 3 == 0 && o + 1 < n) buf[o++] = ',';
+        buf[o++] = raw[i];
+    }
+    buf[o] = 0;
+}
+
+static void hhmm(char *buf, size_t n, int64_t utc, int32_t offset) {
+    struct tm t;
+    local_tm(utc, offset, &t);
+    snprintf(buf, n, "%02d:%02d", t.tm_hour, t.tm_min);
+}
+
+void screen_orbit(uint8_t *fb, const orbit_t *o, const site_t *site, int64_t now, int32_t off, const screen_ctx_t *ctx) {
+    char buf[64], tbuf[8];
+    fb_fill(fb, FB_WHITE);
+    hhmm(tbuf, sizeof tbuf, now, off);
+    snprintf(buf, sizeof buf, "CARY %.1fN %.1fW  %s", site->lat, -site->lon, tbuf);
+    header(fb, "ORBITAL TRACKING", buf);
+    const int top = BAND_H + 7;
+
+    // Sky scope, north up. Elevation 90 at the centre, the horizon at the rim.
+    const int R0 = 80;
+    const float cx = EDGE_L + R0 + 1.5f, cy = top + R0 + 3.5f;
+    gfx_ring(fb, cx, cy, R0, 2, FB_BLACK);
+    gfx_ring(fb, cx, cy, R0 * 2 / 3.0f, 1, FB_BLACK);
+    gfx_ring(fb, cx, cy, R0 / 3.0f, 1, FB_BLACK);
+    for (int a = 0; a < 360; a += 30) {
+        float sx = sin(a * M_PI / 180), cz = cos(a * M_PI / 180);
+        gfx_line(fb, cx + sx * (R0 - 7), cy - cz * (R0 - 7), cx + sx * (R0 - 1), cy - cz * (R0 - 1), 2, FB_BLACK);
+    }
+    int icx = (int)cx, icy = (int)cy;
+    for (int i = -R0 + 8; i <= R0 - 8; i += 3) {
+        fb_set(fb, icx + i, icy, FB_BLACK);
+        fb_set(fb, icx, icy + i, FB_BLACK);
+    }
+    static const struct { const char *t; int dx, dy; } CARD[] = { { "N", 0, -R0 + 16 }, { "E", R0 - 14, 4 }, { "S", 0, R0 - 10 }, { "W", -R0 + 14, 4 } };
+    for (int i = 0; i < 4; i++) {
+        fb_rect(fb, icx + CARD[i].dx - 5, icy + CARD[i].dy - 9, 11, 11, FB_WHITE);
+        gfx_text(fb, icx + CARD[i].dx + 1, icy + CARD[i].dy, &FONT_SK8, FB_BLACK, CARD[i].t, GFX_CENTER);
+    }
+    gfx_text(fb, icx + 4, icy - R0 * 2 / 3 + 10, &FONT_SK8, FB_BLACK, "30", GFX_LEFT);
+    gfx_text(fb, icx + 4, icy - R0 / 3 + 10, &FONT_SK8, FB_BLACK, "60", GFX_LEFT);
+
+    const pass_t *p = orbit_next_pass(o, now);
+    if (p) {
+        float px[PASS_ARC], py[PASS_ARC];
+        for (int i = 0; i < PASS_ARC; i++) {
+            float el = p->el[i] / 10.0f, az = p->az[i] / 10.0f * (float)M_PI / 180;
+            float rr = (R0 - 3) * (1 - (el < 0 ? 0 : el) / 90);
+            px[i] = cx + rr * sin(az);
+            py[i] = cy - rr * cos(az);
+        }
+        for (int i = 1; i < PASS_ARC; i++) gfx_line(fb, px[i - 1], py[i - 1], px[i], py[i], 4, FB_RED);
+        float ex = px[PASS_ARC - 1], ey = py[PASS_ARC - 1];
+        float ang = atan2(ey - py[PASS_ARC - 3], ex - px[PASS_ARC - 3]);
+        gfx_tri(fb, ex + cos(ang) * 7, ey + sin(ang) * 7, ex + cos(ang + 2.4f) * 7, ey + sin(ang + 2.4f) * 7,
+                ex + cos(ang - 2.4f) * 7, ey + sin(ang - 2.4f) * 7, FB_RED);
+        int sx = (int)px[0], sy = (int)py[0];
+        fb_rect(fb, sx - 3, sy - 3, 7, 7, FB_BLACK);
+        fb_rect(fb, sx - 1, sy - 1, 3, 3, FB_WHITE);
+        hhmm(tbuf, sizeof tbuf, p->rise, off);
+        if (sx <= icx) gfx_text(fb, sx + 7, sy + 13, &FONT_SK8, FB_BLACK, tbuf, GFX_LEFT);
+        else gfx_text(fb, sx - 7, sy + 13, &FONT_SK8, FB_BLACK, tbuf, GFX_RIGHT);
+    }
+    fb_rect(fb, icx - 4, icy - 4, 9, 9, FB_BLACK);
+    fb_rect(fb, icx - 2, icy - 2, 5, 5, FB_YELLOW);
+
+    // Sun and Moon beneath the scope.
+    struct tm lt;
+    local_tm(now, off, &lt);
+    int64_t day_start = now - (lt.tm_hour * 3600 + lt.tm_min * 60 + lt.tm_sec);
+    int64_t rise, set;
+    sky_sun_times(site, day_start, &rise, &set);
+    double frac, elong;
+    sky_moon((double)now, &frac, &elong);
+    int y1 = icy + R0 + 8;
+    gfx_sprite(fb, EDGE_L, y1, asset_picto(PI_SUN, 0, 0), 22, 22);
+    gfx_text(fb, EDGE_L + 30, y1 + 9, &FONT_SK8, FB_BLACK, "SOLAR", GFX_LEFT);
+    char r1[8] = "--:--", s1[8] = "--:--";
+    if (rise) hhmm(r1, sizeof r1, rise, off);
+    if (set) hhmm(s1, sizeof s1, set, off);
+    snprintf(buf, sizeof buf, "RISE %s  SET %s", r1, s1);
+    gfx_text(fb, EDGE_L + 30, y1 + 21, &FONT_SK8, FB_BLACK, buf, GFX_LEFT);
+    int y2 = y1 + 32;
+    gfx_sprite(fb, EDGE_L, y2, asset_picto(PI_MOON, orbit_moon_level(elong), 0), 22, 22);
+    snprintf(buf, sizeof buf, "LUNAR  %d%%", (int)lround(frac * 100));
+    gfx_text(fb, EDGE_L + 30, y2 + 9, &FONT_SK8, FB_BLACK, buf, GFX_LEFT);
+    gfx_text(fb, EDGE_L + 30, y2 + 21, &FONT_SK8, FB_BLACK, orbit_moon_name(frac, elong), GFX_LEFT);
+
+    // Intercept
+    const int rx = 196;
+    bool soon = p && now >= p->rise - 15 * 60;
+    gfx_sprite(fb, rx, top + 2, asset_picto(PI_SAT, 0, soon ? 2 : 0), 36, 36);
+    gfx_text(fb, rx + 44, top + 14, &FONT_SK8, FB_BLACK, "ORBITAL INTERCEPT", GFX_LEFT);
+    gfx_text(fb, rx + 44, top + 26, &FONT_SK8, FB_BLACK, p && p->visible ? "ISS  VISIBLE PASS" : "ISS  PASS", GFX_LEFT);
+    if (p) {
+        snprintf(buf, sizeof buf, "%d MIN", (int)((p->set - p->rise + 30) / 60));
+        gfx_text(fb, EDGE_R, top + 14, &FONT_SK8, FB_BLACK, buf, GFX_RIGHT);
+        hhmm(tbuf, sizeof tbuf, p->rise, off);
+        int tw = gfx_text(fb, rx - 2, top + 96, &FONT_BS60, soon ? FB_RED : FB_BLACK, tbuf, GFX_LEFT);
+        int vx = rx - 2 + tw + 10;
+        gfx_text(fb, vx, top + 54, &FONT_SK8, FB_BLACK, "MAX EL", GFX_LEFT);
+        snprintf(buf, sizeof buf, "%d\260", (p->max_el + 5) / 10);
+        gfx_text(fb, vx, top + 78, &FONT_JR37, FB_BLACK, buf, GFX_LEFT);
+        snprintf(buf, sizeof buf, "%s>%s", orbit_compass(p->rise_az), orbit_compass(p->set_az));
+        gfx_text(fb, vx, top + 95, &FONT_JR19, FB_BLACK, buf, GFX_LEFT);
+
+        struct tm pt;
+        local_tm(p->rise, off, &pt);
+        int days = (int)(((p->rise + off) / 86400) - ((now + off) / 86400));
+        if (now >= p->rise) chip(fb, rx, top + 104, FB_RED, FB_WHITE, "INTERCEPT IN PROGRESS", GFX_LEFT);
+        else if (soon) {
+            snprintf(buf, sizeof buf, "INTERCEPT IMMINENT  T-%d MIN", (int)((p->rise - now + 59) / 60));
+            chip(fb, rx, top + 104, FB_RED, FB_WHITE, buf, GFX_LEFT);
+        } else {
+            const char *when = days == 0 ? (pt.tm_hour >= 17 ? "TONIGHT" : "TODAY") : days == 1 ? "TOMORROW" : DAY[pt.tm_wday];
+            snprintf(buf, sizeof buf, "%s %s", p->visible ? "VISIBLE" : "OVERHEAD", when);
+            chip(fb, rx, top + 104, FB_YELLOW, FB_BLACK, buf, GFX_LEFT);
+        }
+    } else {
+        gfx_text(fb, rx - 2, top + 96, &FONT_BS60, FB_BLACK, "--:--", GFX_LEFT);
+        chip(fb, rx, top + 104, FB_WHITE, FB_BLACK, o->l1[0] ? "NO VISIBLE PASS IN 3 DAYS" : "AWAITING ELEMENTS", GFX_LEFT);
+    }
+    for (int x = rx; x < EDGE_R; x += 2) fb_set(fb, x, top + 128, FB_BLACK);
+
+    // Anomaly
+    const int ay = top + 134;
+    if (o->neo_ok) {
+        const neo_t *n = &o->neo;
+        double ld = orbit_ld(n->dist_au);
+        gfx_sprite(fb, rx, ay, asset_picto(PI_ROCK, 0, ld < 1.0 ? 1 : 0), 36, 36);
+        gfx_text(fb, rx + 44, ay + 11, &FONT_SK8, FB_BLACK, "ANOMALY TRACKING", GFX_LEFT);
+        snprintf(buf, sizeof buf, "%s", n->des);
+        gfx_fit(&FONT_JR37, buf, EDGE_R - rx - 44);
+        gfx_text(fb, rx + 44, ay + 34, &FONT_JR37, FB_BLACK, buf, GFX_LEFT);
+
+        const float bx0 = rx + 6, bx1 = EDGE_R - 4, by = ay + 50.5f;
+        gfx_disc(fb, bx0, by, 5, FB_BLACK);
+        fb_rect(fb, (int)bx0, (int)by, (int)(bx1 - bx0), 1, FB_BLACK);
+        int mx = (int)(bx0 + sqrt(1.0 / 4) * (bx1 - bx0));
+        fb_rect(fb, mx, (int)by - 5, 1, 11, FB_BLACK);
+        gfx_disc(fb, mx + 0.5f, by - 8.5f, 2.5f, FB_BLACK);
+        gfx_text(fb, mx + 5, (int)by - 4, &FONT_SK8, FB_BLACK, "MOON", GFX_LEFT);
+        float ox = bx0 + sqrt((ld > 4 ? 4 : ld) / 4) * (bx1 - bx0);
+        gfx_tri(fb, ox - 5, by, ox + 5, by - 5.5f, ox + 5, by + 5.5f, FB_RED);
+
+        char mi[16], mph[16];
+        thousands(mi, sizeof mi, lround(orbit_miles(n->dist_au) / 100) * 100);
+        thousands(mph, sizeof mph, lround(orbit_mph(n->v_kms) / 100) * 100);
+        snprintf(buf, sizeof buf, "RANGE %s MI  %.2f LD", mi, ld);
+        gfx_text(fb, rx, ay + 72, &FONT_SK8, FB_BLACK, buf, GFX_LEFT);
+        int lo, hi;
+        orbit_size_ft(n->h, &lo, &hi);
+        snprintf(buf, sizeof buf, "SPEED %s MPH  SIZE %d-%d FT", mph, (lo + 5) / 10 * 10, (hi + 5) / 10 * 10);
+        gfx_fit(&FONT_SK8, buf, EDGE_R - rx);
+        gfx_text(fb, rx, ay + 84, &FONT_SK8, FB_BLACK, buf, GFX_LEFT);
+        struct tm at;
+        local_tm(n->approach, off, &at);
+        hhmm(tbuf, sizeof tbuf, n->approach, off);
+        if (n->approach < now) snprintf(buf, sizeof buf, "CLOSEST PASSED %s %02d %s", DAY[at.tm_wday], at.tm_mday, MON[at.tm_mon]);
+        else snprintf(buf, sizeof buf, "CLOSEST %s %02d %s %s", DAY[at.tm_wday], at.tm_mday, MON[at.tm_mon], tbuf);
+        gfx_text(fb, rx, ay + 96, &FONT_SK8, FB_BLACK, buf, GFX_LEFT);
+    } else {
+        gfx_sprite(fb, rx, ay, asset_picto(PI_ROCK, 0, 0), 36, 36);
+        gfx_text(fb, rx + 44, ay + 11, &FONT_SK8, FB_BLACK, "ANOMALY TRACKING", GFX_LEFT);
+        gfx_text(fb, rx + 44, ay + 26, &FONT_SK8, FB_BLACK, "AWAITING JPL DATA", GFX_LEFT);
+    }
+
+    sgp4_t sat;
+    if (o->l1[0] && sgp4_parse(o->l1, o->l2, &sat)) {
+        struct tm et;
+        local_tm((int64_t)sat.epoch, 0, &et);
+        snprintf(buf, sizeof buf, "TLE %02d %s  JPL CAD", et.tm_mday, MON[et.tm_mon]);
+    } else {
+        snprintf(buf, sizeof buf, "CELESTRAK  JPL CAD");
+    }
+    footer(fb, ctx, buf);
+}
+
+void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t off, const screen_ctx_t *ctx) {
+    char buf[160];
+    fb_fill(fb, FB_WHITE);
+    struct tm t;
+    local_tm(now, off, &t);
+    int minute = t.tm_hour * 60 + t.tm_min, yday = t.tm_yday + 1;
+    snprintf(buf, sizeof buf, "%s  %s %02d %s  %02d:%02d", c->ship, DAY[t.tm_wday], t.tm_mday, MON[t.tm_mon], t.tm_hour, t.tm_min);
+    header(fb, "CREW MANIFEST", buf);
+    const int top = BAND_H + 7, bottom = EDGE_B - 21;
+
+    int n = c->count > CREW_MAX ? CREW_MAX : c->count, aboard = 0, away = 0, sleeping = 0;
+    const int gap = 5, ch = 126;
+    int cw = n ? (EDGE_R - EDGE_L - (n - 1) * gap) / n : 0;
+    for (int i = 0; i < n; i++) {
+        const crew_member_t *m = &c->member[i];
+        crew_state_t s = crew_state(c, i, minute, t.tm_wday, yday);
+        if (s.kind == CREW_AWAY) away++; else aboard++;
+        if (s.kind == CREW_ASLEEP) sleeping++;
+        int x = EDGE_L + i * (cw + gap), y = top;
+        gfx_rrect(fb, x, y, cw, ch, 6, FB_BLACK);
+        gfx_rrect(fb, x + 1, y + 1, cw - 2, ch - 2, 5, FB_WHITE);
+        gfx_rrect(fb, x, y, cw, 14, 6, FB_BLACK);
+        fb_rect(fb, x, y + 7, cw, 7, FB_BLACK);
+        snprintf(buf, sizeof buf, "%02d", i + 1);
+        gfx_text(fb, x + 6, y + 10, &FONT_SK8, FB_WHITE, buf, GFX_LEFT);
+        int px = PICTO_PX[m->figure];
+        gfx_sprite(fb, x + (cw - px) / 2, y + 18, asset_picto(m->figure, 0, s.sev), px, px);
+        snprintf(buf, sizeof buf, "%s", m->name);
+        gfx_fit(&FONT_JR19, buf, cw - 6);
+        gfx_text(fb, x + cw / 2, y + 84, &FONT_JR19, FB_BLACK, buf, GFX_CENTER);
+        snprintf(buf, sizeof buf, "%s", m->rank);
+        gfx_fit(&FONT_SK8, buf, cw - 6);
+        gfx_text(fb, x + cw / 2, y + 97, &FONT_SK8, FB_BLACK, buf, GFX_CENTER);
+        fb_color_t fill = s.kind == CREW_ASLEEP ? FB_BLACK : s.kind == CREW_AWAY ? FB_YELLOW : FB_WHITE;
+        int wy = y + ch - 20;
+        gfx_rrect(fb, x + 4, wy, cw - 8, 15, 4, FB_BLACK);
+        if (fill != FB_BLACK) gfx_rrect(fb, x + 5, wy + 1, cw - 10, 13, 3, fill);
+        snprintf(buf, sizeof buf, "%s", s.word);
+        gfx_fit(&FONT_SK8, buf, cw - 12);
+        gfx_text(fb, x + cw / 2, wy + 11, &FONT_SK8, fill == FB_BLACK ? FB_WHITE : FB_BLACK, buf, GFX_CENTER);
+    }
+
+    // The day's Special Order on a black plate.
+    const int py = top + ch + 8, ph = bottom - py;
+    gfx_rrect(fb, EDGE_L, py, EDGE_R - EDGE_L, ph, 6, FB_BLACK);
+    gfx_sprite_key(fb, EDGE_L + 8, py + 8, asset_picto(PI_ORDER, 0, 1), 22, 22, FB_WHITE);
+    snprintf(buf, sizeof buf, "SPECIAL ORDER %03d", yday);
+    gfx_text(fb, EDGE_L + 38, py + 17, &FONT_SK8, FB_YELLOW, buf, GFX_LEFT);
+    gfx_text(fb, EDGE_R - 10, py + 17, &FONT_SK8, FB_WHITE, c->company, GFX_RIGHT);
+    char order[200], lines[4][128];
+    crew_order(c, yday, order, sizeof order);
+    int nl = gfx_wrap(&FONT_JR19, order, EDGE_R - EDGE_L - 20, lines, 4);
+    // Centred in the space under the title row.
+    int ty = py + 30 + (ph - 30 - nl * 18) / 2 + 13;
+    for (int i = 0; i < nl; i++) gfx_text(fb, EDGE_L + 10, ty + i * 18, &FONT_JR19, FB_WHITE, lines[i], GFX_LEFT);
+
+    if (sleeping) snprintf(buf, sizeof buf, "ABOARD %d  HYPERSLEEP %d", aboard, sleeping);
+    else snprintf(buf, sizeof buf, "ABOARD %d  AWAY %d", aboard, away);
     footer(fb, ctx, buf);
 }
 

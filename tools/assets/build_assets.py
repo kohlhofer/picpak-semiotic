@@ -24,6 +24,7 @@ FONTS = ["JR19", "JR37", "SK8", "SK16", "BS17", "BS20", "BS24", "BS60", "BS104"]
 STATUS_PX = 22
 STATUS_ICONS = ["CELL", "LINK", "CORE", "STORE", "CHIP", "FEED", "TILT"]
 ORBIT_PX = 36
+PICTOS = ["SAT", "ROCK", "SUN", "MOON", "ORDER", "MAN", "WOMAN", "GIRL1", "GIRL2", "DOG"]
 
 
 def render():
@@ -135,7 +136,31 @@ const uint8_t *asset_status(status_icon_t icon, int level, uint8_t sev) {{
 }}
 """)
 
-    total = len(blob) + len(orbits) + len(status)
+    picto, picto_first, picto_px, picto_levels = bytearray(), [], [], []
+    assert [x["name"] for x in d["picto"]] == PICTOS
+    for p in d["picto"]:
+        picto_first.append(len(picto))
+        picto_px.append(p["size"])
+        picto_levels.append(p["levels"])
+        for digits in p["tiles"]:
+            assert len(digits) == p["size"] * p["size"]
+            picto += pack2(digits)
+    parts.append(f"static const uint8_t PICTO_DATA[{len(picto)}] = {{\n{c_bytes(picto)}\n}};")
+    parts.append(f"static const uint32_t PICTO_FIRST[{len(picto_first)}] = {{ {', '.join(map(str, picto_first))} }};")
+    parts.append(f"static const uint8_t PICTO_LEVELS[{len(picto_levels)}] = {{ {', '.join(map(str, picto_levels))} }};")
+    parts.append(f"const uint8_t PICTO_PX[PI_COUNT] = {{ {', '.join(map(str, picto_px))} }};")
+    parts.append("""
+const uint8_t *asset_picto(picto_t p, int level, uint8_t sev) {
+    if ((unsigned)p >= PI_COUNT || sev > 3) return 0;
+    int levels = PICTO_LEVELS[p];
+    if (level < 0) level = 0;
+    if (level >= levels) level = levels - 1;
+    int bytes = (PICTO_PX[p] * PICTO_PX[p] + 3) / 4;
+    return &PICTO_DATA[PICTO_FIRST[p] + (level * 4 + sev) * bytes];
+}
+""")
+
+    total = len(blob) + len(orbits) + len(status) + len(picto)
     for name in FONTS:
         glyphs = d["fonts"][name]["glyphs"]
         bits, rows, chars = bytearray(), [], ""

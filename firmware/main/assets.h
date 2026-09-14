@@ -32,3 +32,10 @@ const uint8_t *asset_orbit(int hour);
 typedef enum { STI_CELL, STI_LINK, STI_CORE, STI_STORE, STI_CHIP, STI_FEED, STI_TILT, STI_COUNT } status_icon_t;
 #define STATUS_PX 22
 const uint8_t *asset_status(status_icon_t icon, int level, uint8_t sev);
+
+// Orbital Tracking and Crew Manifest pictograms, PICTO_PX[p] square, 2 bpp.
+// sev picks the ground: 0 white, 1 yellow, 2 red, 3 black with white ink.
+// MOON takes a phase level 0-7 (0 new, 2 first quarter, 4 full, 6 last quarter).
+typedef enum { PI_SAT, PI_ROCK, PI_SUN, PI_MOON, PI_ORDER, PI_MAN, PI_WOMAN, PI_GIRL1, PI_GIRL2, PI_DOG, PI_COUNT } picto_t;
+extern const uint8_t PICTO_PX[PI_COUNT];
+const uint8_t *asset_picto(picto_t p, int level, uint8_t sev);

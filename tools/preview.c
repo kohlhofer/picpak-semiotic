@@ -3,13 +3,21 @@
 // usage: preview FORECAST.json NEWS.xml OUT.ppm [MODE]
 //
 // MODE is 1-based: 1 environmental panel, 2 System Updates, 3 System Status
-// (example device readings; PREVIEW_TROUBLE=1 shows warnings), anything else
-// the placeholder. Prints each hour's conditions and each
-// headline so the screen can be checked against the data.
+// (example device readings; PREVIEW_TROUBLE=1 shows warnings), 4 Orbital
+// Tracking (ORBIT_TLE and ORBIT_NEO name saved responses; defaults are the
+// test fixtures), 5 Crew Manifest (crew_config.h if present, else the example).
+// PREVIEW_NOW=unix seconds renders at another time. Prints each hour's
+// conditions and each headline so the screen can be checked against the data.
 #include "fb.h"
 #include "news.h"
 #include "screen.h"
 #include "wx.h"
+
+#if __has_include("crew_config.h")
+#include "crew_config.h"
+#else
+#include "crew_config.example.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +45,7 @@ int main(int argc, char **argv) {
     static news_t news;
     if (!news_parse(xml, xlen, &news)) fprintf(stderr, "no headlines in %s\n", argv[2]);
 
-    int64_t now = (int64_t)time(NULL);
+    int64_t now = getenv("PREVIEW_NOW") ? atoll(getenv("PREVIEW_NOW")) : (int64_t)time(NULL);
     for (int i = 0; i < w.count; i++) {
         wx_flag_t f[16];
         int n = wx_conditions(&w, i, f, 16);
@@ -64,6 +72,28 @@ int main(int argc, char **argv) {
         snprintf(st.build, sizeof st.build, "6c747c2");
         if (getenv("PREVIEW_TROUBLE")) { st.batt_mv = 3590; st.trend_mv = -90; st.rssi = -86; st.fetch_failures = 3; st.wx_sync = now - 5 * 3600; }
         screen_status(fb, &st, "PICPAK-3E44", "BUTTON", "USB", &ctx);
+    }
+    else if (mode == 3) {
+        static orbit_t o;
+        static char text[16384];
+        const char *tle = getenv("ORBIT_TLE") ? getenv("ORBIT_TLE") : "test/fixtures/celestrak-iss-2026-09-13.tle";
+        const char *neo = getenv("ORBIT_NEO") ? getenv("ORBIT_NEO") : "test/fixtures/jpl-cad-2026-09-13.json";
+        slurp(tle, text, sizeof text);
+        if (!orbit_parse_tle(text, o.l1, o.l2)) { fprintf(stderr, "no elements in %s\n", tle); return 1; }
+        size_t nlen = slurp(neo, text, sizeof text);
+        o.neo_ok = orbit_parse_neo(text, nlen, &o.neo);
+        sgp4_t sat;
+        sgp4_parse(o.l1, o.l2, &sat);
+        const site_t site = { 35.7915, -78.7811, 0.154 };
+        o.count = (uint8_t)pass_find(&sat, &site, now, now + 3 * 86400, PASS_MIN_EL, true, o.pass, ORBIT_PASSES);
+        for (int i = 0; i < o.count; i++)
+            printf("pass %d rise %+.1fh %ds max %.1f %d>%d %s\n", i, (o.pass[i].rise - now) / 3600.0, (int)(o.pass[i].set - o.pass[i].rise),
+                   o.pass[i].max_el / 10.0, o.pass[i].rise_az, o.pass[i].set_az, o.pass[i].visible ? "visible" : "");
+        screen_orbit(fb, &o, &site, now, w.utc_offset, &ctx);
+    }
+    else if (mode == 4) {
+        static const crew_t crew = CREW_CONFIG;
+        screen_crew(fb, &crew, now, w.utc_offset, &ctx);
     }
     else screen_placeholder(fb, &ctx);
 

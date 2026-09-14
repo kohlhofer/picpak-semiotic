@@ -1,7 +1,9 @@
 // Full-screen layouts. Pure C: the preview tool renders them on the Mac.
 #pragma once
 #include <stdint.h>
+#include "crew.h"
 #include "news.h"
+#include "orbit.h"
 #include "status.h"
 #include "wx.h"
 
@@ -23,6 +25,14 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
 // header; wake and reset label how the board came up.
 void screen_status(uint8_t *fb, const status_t *s, const char *device, const char *wake, const char *reset,
                    const screen_ctx_t *ctx);
+
+// Mode 4: Orbital Tracking, the sky scope. Sun and Moon are worked out for the
+// site at now; times show at utc_offset.
+void screen_orbit(uint8_t *fb, const orbit_t *o, const site_t *site, int64_t now, int32_t utc_offset,
+                  const screen_ctx_t *ctx);
+
+// Mode 5: Crew Manifest, the roster cards and the day's Special Order.
+void screen_crew(uint8_t *fb, const crew_t *c, int64_t now, int32_t utc_offset, const screen_ctx_t *ctx);
 
 // Any mode that has no screen yet.
 void screen_placeholder(uint8_t *fb, const screen_ctx_t *ctx);

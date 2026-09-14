@@ -13,3 +13,6 @@ firmware/main/secrets.h
 
 # clangd index
 firmware/.cache/
+
+# Real crew names for the Crew Manifest.
+firmware/main/crew_config.h

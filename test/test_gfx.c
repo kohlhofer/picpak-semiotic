@@ -73,9 +73,44 @@ static void test_text(void) {
     CHECK(count(FB_BLACK, 0, 0, FB_W, FB_H) == 5);
 }
 
+static void test_shapes(void) {
+    fb_fill(fb, FB_WHITE);
+    gfx_disc(fb, 50, 50, 10, FB_BLACK);
+    int n = count(FB_BLACK, 0, 0, FB_W, FB_H);
+    CHECK(n > 300 && n < 330);   // pi r^2 = 314
+    CHECK(fb_get(fb, 50, 50) == FB_BLACK && fb_get(fb, 50, 39) == FB_WHITE && fb_get(fb, 50, 40) == FB_BLACK);
+
+    fb_fill(fb, FB_WHITE);
+    gfx_ring(fb, 100, 100, 20, 2, FB_RED);
+    CHECK(fb_get(fb, 100, 100) == FB_WHITE && fb_get(fb, 100, 81) == FB_RED && fb_get(fb, 100, 84) == FB_WHITE);
+
+    fb_fill(fb, FB_WHITE);
+    gfx_line(fb, 10, 10.5f, 30, 10.5f, 3, FB_BLACK);
+    CHECK(count(FB_BLACK, 0, 9, FB_W, 12) >= 20 * 3 && count(FB_BLACK, 0, 0, FB_W, 9) == 0);
+    gfx_line(fb, -50, -50, 500, 500, 2, FB_BLACK);   // clipped, no crash
+
+    fb_fill(fb, FB_WHITE);
+    gfx_tri(fb, 0, 0, 10, 0, 0, 10, FB_YELLOW);
+    gfx_tri(fb, 20, 0, 20, 10, 30, 0, FB_YELLOW);   // either winding
+    n = count(FB_YELLOW, 0, 0, FB_W, FB_H);
+    CHECK(n >= 90 && n <= 120);
+
+    CHECK(PICTO_PX[PI_MAN] == 44 && PICTO_PX[PI_MOON] == 22);
+    CHECK(asset_picto(PI_COUNT, 0, 0) == NULL && asset_picto(PI_SAT, 0, 4) == NULL);
+    fb_fill(fb, FB_WHITE);
+    gfx_sprite(fb, 0, 0, asset_picto(PI_DOG, 0, 3), 44, 44);
+    CHECK(count(FB_BLACK, 0, 0, 44, 44) > count(FB_WHITE, 0, 0, 44, 44));   // dormant: black ground
+    fb_fill(fb, FB_WHITE);
+    gfx_sprite(fb, 0, 0, asset_picto(PI_MOON, 0, 0), 22, 22);
+    int dark = count(FB_BLACK, 0, 0, 22, 22);
+    gfx_sprite(fb, 0, 0, asset_picto(PI_MOON, 4, 0), 22, 22);
+    CHECK(count(FB_BLACK, 0, 0, 22, 22) > dark + 60);   // a full moon has far more ink than a new one
+}
+
 int main(void) {
     test_tiles();
     test_text();
+    test_shapes();
     if (failures) { printf("%d check(s) failed\n", failures); return EXIT_FAILURE; }
     printf("gfx: all checks passed\n");
     return EXIT_SUCCESS;
