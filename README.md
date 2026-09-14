@@ -2,6 +2,19 @@
 
 Open firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3. The stock firmware is a Bluetooth photo frame driven from a phone app. This turns it into a small ship's console in the visual language of Ron Cobb's semiotic standard for *Alien*: five screens stepped through with the one button, Wi-Fi once an hour, deep sleep in between.
 
+> [!CAUTION]
+> ## Disclaimer: use at your own risk
+>
+> **THIS FIRMWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,** express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and non-infringement.
+>
+> - **Flashing it can permanently break your PicPak.** It replaces the manufacturer's firmware and overwrites data the device cannot recreate. A backup and a restore path are included, but nothing guarantees they will work on your unit.
+> - **It will almost certainly void your warranty.**
+> - **You are responsible for what you do with it.** In no event shall Field Bureau & Werkstatt LLC or any contributor be liable for any claim, damages or other liability, including a bricked device, lost data, a damaged battery or anything else, arising from the use of this software or the instructions in this README.
+> - **This is an independent hobby project.** It is not affiliated with, endorsed by or supported by the maker of the PicPak.
+> - **Feel free to modify it.** Fork it, change it and share it under the terms of the [GNU Affero General Public License v3.0 or later](LICENSE), which carries the full warranty disclaimer and limitation of liability (sections 15 and 16).
+>
+> If any of that gives you pause, don't flash it.
+
 <table>
 <tr>
 <td><img src="docs/mode-1.png" width="400" alt="Mode 1, Atmospheric Conditions: the current temperature with a hazard placard, and the next twelve hours"></td>
@@ -31,7 +44,6 @@ Flashing this firmware replaces the stock firmware, and it overwrites the flash 
 
 - **Tested on one unit.** It was built and tested on a single PicPak running stock firmware `simplestick` V0.3.2. A different hardware revision or a newer stock firmware may behave differently, or may have locked the chip.
 - **The way back is written but not rehearsed.** `make restore` checks your backup and writes it back through the chip's ROM loader, but nobody has run it end to end on a PicPak yet.
-- **Not affiliated with the maker of the PicPak.** You do this at your own risk.
 
 ## What You Need
 
