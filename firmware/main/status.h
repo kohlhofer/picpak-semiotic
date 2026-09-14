@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // System Status readouts: what the board knows about itself, turned into the
 // labels, values and severities the console screen draws. Pure C.

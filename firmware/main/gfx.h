@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Drawing on the framebuffer with the generated placards and fonts. Pure C,
 // so screens render the same on the Mac as on the panel.

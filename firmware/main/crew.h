@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Crew Manifest: the household as a ship's crew. Status comes from the clock and
 // each member's schedule, duties rotate daily, and the Special Order is picked

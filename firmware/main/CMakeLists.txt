@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 # SPDX-License-Identifier: AGPL-3.0-or-later
 idf_component_register(
     SRCS "main.c" "maint.c" "wake.c" "fb.c" "epd.c" "imu.c" "keypin.c"

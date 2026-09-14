@@ -2,18 +2,15 @@
 
 Open firmware for the PicPak, a 4.2" four-colour e-ink frame built on an ESP32-C3. The stock firmware is a Bluetooth photo frame driven from a phone app. This turns it into a small ship's console in the visual language of Ron Cobb's semiotic standard for *Alien*: five screens stepped through with the one button, Wi-Fi once an hour, deep sleep in between.
 
-> [!CAUTION]
-> ## Disclaimer: use at your own risk
->
-> **THIS FIRMWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,** express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and non-infringement.
+> [!WARNING]
+> **Use at your own risk.** This firmware is provided "as is", without warranty of any kind, express or implied, including the warranties of merchantability, fitness for a particular purpose and non-infringement.
 >
 > - **Flashing it can permanently break your PicPak.** It replaces the manufacturer's firmware and overwrites data the device cannot recreate. A backup and a restore path are included, but nothing guarantees they will work on your unit.
 > - **It will almost certainly void your warranty.**
-> - **You are responsible for what you do with it.** In no event shall Field Bureau & Werkstatt LLC or any contributor be liable for any claim, damages or other liability, including a bricked device, lost data, a damaged battery or anything else, arising from the use of this software or the instructions in this README.
-> - **This is an independent hobby project.** It is not affiliated with, endorsed by or supported by the maker of the PicPak.
-> - **Feel free to modify it.** Fork it, change it and share it under the terms of the [GNU Affero General Public License v3.0 or later](LICENSE), which carries the full warranty disclaimer and limitation of liability (sections 15 and 16).
+> - **You are responsible for what you do with it.** In no event shall the authors or contributors be liable for any claim, damages or other liability, including a bricked device, lost data or a damaged battery, arising from the use of this software or the instructions in this README.
+> - **Feel free to modify it.** Fork it, change it and share it under the [GNU Affero General Public License v3.0 or later](LICENSE), whose sections 15 and 16 carry the full disclaimer of warranty and limitation of liability.
 >
-> If any of that gives you pause, don't flash it.
+> Semiotic is an independent project, not affiliated with or endorsed by the maker of the PicPak.
 
 <table>
 <tr>
@@ -257,4 +254,4 @@ Pixels are 2 bits each, `0` black, `1` white, `2` yellow and `3` red, and the pa
 - **Test reference values** for orbits, sun and moon were generated with [Skyfield](https://rhodesmill.org/skyfield/), which is not part of the firmware.
 - *Alien*, Nostromo, MU/TH/UR and Weyland-Yutani belong to 20th Century Studios. This is an unofficial homage, not affiliated with or endorsed by them.
 
-Copyright © 2026 Field Bureau & Werkstatt LLC. Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE); source files carry SPDX notices, and the files built on varanu5's work credit that project too.
+Copyright © 2026 Alexander Kohlhofer. Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE); source files carry SPDX notices, and the files built on varanu5's work credit that project too.

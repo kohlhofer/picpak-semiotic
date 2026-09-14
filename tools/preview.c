@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Render a PicPak screen on the Mac from saved or live feeds.
 //

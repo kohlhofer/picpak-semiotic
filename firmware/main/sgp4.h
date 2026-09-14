@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SGP4 orbit propagation for near-Earth satellites (period under 225 min), from
 // the two-line elements CelesTrak publishes. A port of the near-Earth branch of

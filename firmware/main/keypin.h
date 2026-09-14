@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // GPIO2 carries both the button and the battery divider, so both are read
 // through the ADC: near 0 V means pressed, otherwise it is the battery.

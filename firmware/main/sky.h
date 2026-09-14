@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Sun and Moon from low-precision almanac formulas (about a minute of time, a
 // fraction of a degree), sidereal time, and an observer on the WGS-84 ellipsoid.

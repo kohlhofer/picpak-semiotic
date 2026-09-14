@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Name,    Type, SubType, Offset,   Size
 # The flash chip has 16 MB; the stock layout left the app 1.5 MB. 4 MB gives

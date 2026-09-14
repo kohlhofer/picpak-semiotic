@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Weather for the environmental panel: an Open-Meteo hourly forecast in °F,
 // mph and inches, and the rules that turn each hour into placards. Pure C.

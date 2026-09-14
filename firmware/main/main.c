@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // PicPak firmware: modes stepped with the one button. Mode 1 is the
 // environmental panel for the configured place; mode 2 is System Updates (RSS headlines);

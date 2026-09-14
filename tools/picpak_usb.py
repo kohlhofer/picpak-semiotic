@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+# SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Finding the PicPak on USB and getting it into the ESP32-C3's ROM loader.
 

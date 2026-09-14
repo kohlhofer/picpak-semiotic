@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 Field Bureau & Werkstatt LLC
+// SPDX-FileCopyrightText: 2026 Alexander Kohlhofer
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // 2 bits per pixel framebuffer for the 400x300 BWRY panel. Pure C, no ESP-IDF
 // dependencies, so it builds and tests on the host.
