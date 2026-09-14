@@ -186,11 +186,11 @@ void screen_news(uint8_t *fb, const news_t *n, int64_t now_utc, int32_t utc_offs
     int nl[NEWS_MAX];
     fb_fill(fb, FB_WHITE);
 
-    snprintf(buf, sizeof buf, "NPR");
+    snprintf(buf, sizeof buf, "BBC WORLD");
     if (ctx->sync_utc) {
         struct tm t;
         local_tm(ctx->sync_utc, utc_offset, &t);
-        snprintf(buf, sizeof buf, "NPR  %02d:%02d", t.tm_hour, t.tm_min);
+        snprintf(buf, sizeof buf, "BBC WORLD  %02d:%02d", t.tm_hour, t.tm_min);
     }
     header(fb, "SYSTEM UPDATES", buf);
 

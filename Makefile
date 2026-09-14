@@ -49,7 +49,7 @@ test:
 	./build/test_wx $(FIXTURE)
 	./build/test_gfx
 	./build/test_sched_batt
-	./build/test_news test/fixtures/npr-news-2026-09-13.xml
+	./build/test_news test/fixtures/npr-news-2026-09-13.xml test/fixtures/bbc-world-2026-09-14.xml
 	./build/test_status
 	./build/test_orbit test/fixtures/celestrak-iss-2026-09-13.tle
 	./build/test_crew
@@ -62,7 +62,7 @@ assets:
 orders:
 	python3 tools/orders.py
 
-# Render a screen from live Cary weather and NPR headlines to build/preview.png.
+# Render a screen from live Cary weather and BBC World headlines to build/preview.png.
 # FORECAST=path and NEWS=path render saved responses instead. MODE picks the
 # screen: 1 environmental panel, 2 System Updates, 3 System Status, 4 Orbital
 # Tracking, 5 Crew Manifest.

@@ -1,5 +1,5 @@
 // PicPak firmware: modes stepped with the one button. Mode 1 is the
-// environmental panel for Cary, NC; mode 2 is System Updates (NPR headlines);
+// environmental panel for Cary, NC; mode 2 is System Updates (BBC World headlines);
 // mode 3 is System Status, the board reporting on itself; mode 4 is Orbital
 // Tracking (ISS passes and the nearest asteroid); mode 5 is the Crew Manifest.
 //
@@ -92,7 +92,7 @@ static const site_t SITE = { 35.7915, -78.7811, 0.154 };   // Cary, NC, as in WX
 static const crew_t CREW = CREW_CONFIG;
 
 static uint8_t s_fb[FB_BYTES];
-static char s_body[24576];   // the NPR feed is about 14 KB
+static char s_body[49152];   // the BBC World feed is about 24 KB and grows on busy days
 static int s_batt_mv = -1;
 static wake_t s_wake;
 static bool s_imu_ok;

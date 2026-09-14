@@ -7,7 +7,7 @@ The frame has five modes, stepped through with its one button. Presses made duri
 | Mode | What it shows |
 |---|---|
 | 1 Environmental panel | Cary's weather for the next twelve hours as readings and hazard placards |
-| 2 System Updates | NPR headlines, each with an orbit placard that shows its age |
+| 2 System Updates | BBC World headlines, each with an orbit placard that shows its age |
 | 3 System Status | The board itself: battery and its trend, feeds, Wi-Fi, chip temperature, storage, firmware, attitude |
 | 4 Orbital Tracking | The next visible ISS pass on a sky scope, the nearest asteroid this week, sunrise, sunset and moon phase |
 | 5 Crew Manifest | The household as a ship's crew, with status from a daily schedule, duty rotation and a daily Special Order |
@@ -27,7 +27,7 @@ Decided on 2026-09-13:
 | Weather source | Open-Meteo hourly forecast, no key, requested in °F, mph and inches (visibility comes back in feet) |
 | Placard frame | Rounded corners |
 | Placards | A for everything except thermal high (B, rising chevrons), precipitation (B, three drops) and visibility (B, veiled beacon) |
-| Headlines | NPR's top stories RSS, list layout |
+| Headlines | BBC News World RSS, list layout (NPR until 2026-09-14; its top stories ran to features and teasers) |
 | System Status | Console layout; clock drift and counters left off |
 | Orbital Tracking | Sky scope layout; visible passes only; sun and moon on. ISS elements from CelesTrak with SGP4 on the board, asteroids from JPL's close-approach API, both without keys |
 | Crew Manifest | Roster layout, duty rotation and hypersleep on, 366 Special Orders compiled in. Names and schedules live in the git-ignored `crew_config.h` |

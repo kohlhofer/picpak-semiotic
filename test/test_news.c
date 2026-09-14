@@ -67,6 +67,24 @@ static void test_fixture(const char *path) {
     CHECK(!news_parse(cut, strlen(cut), &none));
 }
 
+// The feed in use: CDATA titles, GMT dates, editorial rather than time order.
+static void test_bbc(const char *path) {
+    FILE *f = fopen(path, "rb");
+    CHECK(f != NULL);
+    if (!f) return;
+    static char buf[65536];
+    size_t len = fread(buf, 1, sizeof buf, f);
+    fclose(f);
+    CHECK(len < 49152);   // fits the firmware's download buffer
+    static news_t n;
+    CHECK(news_parse(buf, len, &n));
+    CHECK(n.count == NEWS_MAX);   // the feed has 31
+    CHECK(strcmp(n.item[0].title, "China criticises idea it is in 'malicious competition' over AI") == 0);
+    CHECK(n.item[0].published == 1789385499);   // Mon, 14 Sep 2026 11:31:39 GMT
+    CHECK(strcmp(n.item[2].title, "Swedish left-wing bloc narrowly ahead with election too close to call") == 0);
+    for (int i = 0; i < n.count; i++) CHECK(n.item[i].published > 1789300000 && strchr(n.item[i].title, '<') == NULL);
+}
+
 static void test_wrap(void) {
     char lines[2][128];
     int one = gfx_text_width(&FONT_JR19, "Wisconsin congressman");
@@ -92,6 +110,7 @@ int main(int argc, char **argv) {
     test_clean();
     test_dates();
     test_fixture(argc > 1 ? argv[1] : "test/fixtures/npr-news-2026-09-13.xml");
+    test_bbc(argc > 2 ? argv[2] : "test/fixtures/bbc-world-2026-09-14.xml");
     test_wrap();
     if (failures) { printf("%d check(s) failed\n", failures); return EXIT_FAILURE; }
     printf("news: all checks passed\n");
