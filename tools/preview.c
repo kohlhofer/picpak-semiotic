@@ -8,8 +8,9 @@
 // Tracking (ORBIT_TLE and ORBIT_NEO name saved responses; defaults are the
 // test fixtures), 5 Crew Manifest. Settings come from config.h, or from
 // config.example.h when it is missing or PREVIEW_EXAMPLE is defined.
-// PREVIEW_NOW=unix seconds renders at another time. Prints each hour's
-// conditions and each headline so the screen can be checked against the data.
+// PREVIEW_NOW=unix seconds renders at another time, PREVIEW_PLACE=name labels
+// another place. Prints each hour's conditions and each headline so the
+// screen can be checked against the data.
 #include "fb.h"
 #include "news.h"
 #include "screen.h"
@@ -67,7 +68,8 @@ int main(int argc, char **argv) {
         printf("n%d %4.1fh  %s\n", i, (now - news.item[i].published) / 3600.0, news.item[i].title);
 
     int mode = argc > 4 ? atoi(argv[4]) - 1 : 0;
-    screen_ctx_t ctx = { .mode = mode, .modes = 5, .batt_pct = 78, .sync_utc = now, .place = PLACE_NAME, .feed = NEWS_LABEL };
+    screen_ctx_t ctx = { .mode = mode, .modes = 5, .batt_pct = 78, .sync_utc = now,
+                         .place = getenv("PREVIEW_PLACE") ? getenv("PREVIEW_PLACE") : PLACE_NAME, .feed = NEWS_LABEL };
     static uint8_t fb[FB_BYTES];
     if (mode == 0) screen_env(fb, &w, &ctx);
     else if (mode == 1) screen_news(fb, &news, now, w.utc_offset, &ctx);

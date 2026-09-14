@@ -100,12 +100,17 @@ preview:
 	python3 tools/ppm2png.py build/preview.ppm build/preview.png 2
 	@echo "wrote build/preview.png"
 
-# The README's screenshots, from the example settings and saved responses.
+# The README's screenshots, from the example settings and saved responses. The
+# weather screen uses a stormy afternoon in Havana, which shows more placards
+# than a mild day at the example location.
 SHOT_NOW := 1789410600
 screenshots:
 	@mkdir -p build docs
 	$(HOST_CC) -DPREVIEW_EXAMPLE $(PREVIEW_SRC) -lm -o build/preview-example
-	@for m in 1 2 3 4 5; do \
+	PREVIEW_NOW=1789405500 PREVIEW_PLACE=HAVANA ./build/preview-example test/fixtures/open-meteo-havana-2026-09-14.json \
+		test/fixtures/bbc-world-2026-09-14.xml build/shot.ppm 1 >/dev/null
+	python3 tools/ppm2png.py build/shot.ppm docs/mode-1.png 2
+	@for m in 2 3 4 5; do \
 		PREVIEW_NOW=$(SHOT_NOW) ./build/preview-example test/fixtures/open-meteo-greenwich-2026-09-14.json \
 			test/fixtures/bbc-world-2026-09-14.xml build/shot.ppm $$m >/dev/null && \
 		python3 tools/ppm2png.py build/shot.ppm docs/mode-$$m.png 2 || exit 1; \
